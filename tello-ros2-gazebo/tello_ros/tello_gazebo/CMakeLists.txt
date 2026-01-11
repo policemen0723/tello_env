@@ -81,7 +81,7 @@ install(
 
 ## Install Python scripts
 install(
-  PROGRAMS src/inject_entity.py
+  PROGRAMS src/inject_entity.py src/depth_anything_node.py src/odom_to_tf.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
