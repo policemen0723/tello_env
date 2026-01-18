@@ -47,9 +47,9 @@ p.position.x = float(sys.argv[2])
 p.position.y = float(sys.argv[3])
 p.position.z = float(sys.argv[4])
 q = transformations.quaternion_from_euler(0, 0, float(sys.argv[5]))
-p.orientation.w = q[0]
-p.orientation.x = q[1]
-p.orientation.y = q[2]
-p.orientation.z = q[3]
+p.orientation.x = q[0]
+p.orientation.y = q[1]
+p.orientation.z = q[2]
+p.orientation.w = q[3]
 
 inject(f.read(), p)

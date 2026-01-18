@@ -11,13 +11,15 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 def generate_launch_description():
     ns = 'drone1'
     tello_gazebo_dir = get_package_share_directory('tello_gazebo')
+    world_path = os.path.join(tello_gazebo_dir, 'worlds', 'takahashi.world')
     
     # 1. Include simple_launch.py to start Gazebo and Tello
     # We can invoke it directly or copy its content. Invoking is cleaner.
     simple_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(tello_gazebo_dir, 'launch', 'simple_launch.py')
-        )
+        ),
+        launch_arguments={'world': world_path}.items(),
     )
 
     # 2. Start Depth Anything Node
@@ -89,7 +91,10 @@ def generate_launch_description():
                 'icp_odometry': 'false',
 
                 'approx_sync': 'true',
-                'approx_sync_max_interval': '0.02',
+                # DepthAnything introduces noticeable processing latency; allow wider sync window.
+                'approx_sync_max_interval': '0.5',
+                'topic_queue_size': '30',
+                'sync_queue_size': '30',
                 'qos': '2',
 
                 'rgb_topic': '/drone1/depth/rgb',
@@ -124,25 +129,16 @@ def generate_launch_description():
     tf_optical = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments = ['0', '0', '0', '-1.57', '0', '-1.57', 'camera_link', 'camera_optical_link']
+        arguments=['0', '0', '0', '-1.57', '0', '-1.57', 'camera_link_1', 'camera_optical_link_1']
     )
 
-    # 4. Start Odom to TF Broadcaster
-    # Fixes the missing transform between odom and base_link_1 for RViz
-    odom_tf_node = Node(
-        package='tello_gazebo',
-        executable='odom_to_tf.py',
-        name='odom_to_tf',
-        output='screen',
-        parameters=[{'use_sim_time': True}]
-    )
+    # 4. Odom TF is intentionally omitted here.
+    # RTAB-Map (visual odometry) will publish odom -> base_link_1.
+    # Broadcasting another odom TF from Gazebo ground truth can twist the tree.
 
     return LaunchDescription([
         simple_launch,
         depth_node,
         rtabmap_launch,
-        odom_tf_node,
-        # tf_optical # Enable if needed. The depth anything node just forwards the frame_id. 
-                   # If frame_id is 'camera_link', and rtabmap expects optical frame...
-                   # For now let's assume standard setup works or debug later.
+        tf_optical
     ])
