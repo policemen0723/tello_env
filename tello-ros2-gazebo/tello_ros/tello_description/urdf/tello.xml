@@ -109,18 +109,18 @@
             <center_of_mass>0 0 0</center_of_mass>
         </plugin>
     </gazebo>
+    <!-- Ground Truth plugin commented out to avoid TF conflict with Visual Odometry
     <gazebo>
         <plugin name="ground_truth" filename="libgazebo_ros_p3d.so">
        <frame_name>map</frame_name>
        <body_name>base_link${suffix}</body_name>
        <ros>
           <namespace>/${topic_ns}</namespace>
-          <!-- <remapping>odom:=p3d_test_deprecated</remapping> -->
         </ros>
-       <!-- <topic_name>byebye</topic_name> -->
        <update_rate>30.0</update_rate>
       </plugin>
     </gazebo>
+    -->
     <!-- Camera plugin for Gazebo -->
     <!-- TODO use Tello camera specs -->
     <!-- TODO add another joint and rotate the camera into place -->

@@ -90,9 +90,10 @@ def generate_launch_description():
                 'visual_odometry': 'true',
                 'icp_odometry': 'false',
 
-                'approx_sync': 'true',
-                # DepthAnything introduces noticeable processing latency; allow wider sync window.
-                'approx_sync_max_interval': '0.5',
+                # Depth/RGB are published with identical stamps by depth_anything_node.
+                # Use exact sync to prevent mismatching frames.
+                'approx_sync': 'false',
+                'approx_sync_max_interval': '0.02',
                 'topic_queue_size': '30',
                 'sync_queue_size': '30',
                 'qos': '2',
