@@ -90,12 +90,13 @@ def generate_launch_description():
                 'visual_odometry': 'true',
                 'icp_odometry': 'false',
 
-                # Depth/RGB are published with identical stamps by depth_anything_node.
-                # Use exact sync to prevent mismatching frames.
+                # Force exact RGB/Depth/CameraInfo synchronization via rgbd_sync.
+                'rgbd_sync': 'true',
+                'approx_rgbd_sync': 'false',
                 'approx_sync': 'false',
                 'approx_sync_max_interval': '0.02',
-                'topic_queue_size': '30',
-                'sync_queue_size': '30',
+                'topic_queue_size': '10',
+                'sync_queue_size': '10',
                 'qos': '2',
 
                 'rgb_topic': '/drone1/depth/rgb',
@@ -104,6 +105,8 @@ def generate_launch_description():
 
                 'rviz': 'true',
                 'rtabmap_viz': 'false',
+                # Relax inlier requirements to reduce dropouts (lower accuracy but more stable).
+                'odom_args': '--Odom/MinInliers 10 --Vis/MinInliers 10',
                 }.items()
 
         )
