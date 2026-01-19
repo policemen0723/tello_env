@@ -34,6 +34,18 @@ foreach (INDEX RANGE 0 8)
   add_custom_target(generate_urdf${SUFFIX} ALL DEPENDS ${URDF_FILE})
 endforeach ()
 
+# Additional URDF for a single drone with namespace "tello" and suffix "_1".
+set(URDF_TELLO_FILE "${CMAKE_CURRENT_BINARY_DIR}/urdf/tello_tello_1.urdf")
+add_custom_command(
+  OUTPUT ${URDF_TELLO_FILE}
+  COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/src/replace.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/urdf/tello.xml" "suffix=_1" "topic_ns=tello" ">" "${URDF_TELLO_FILE}"
+  DEPENDS urdf/tello.xml
+  COMMENT "Generate ${URDF_TELLO_FILE}"
+  VERBATIM
+)
+add_custom_target(generate_urdf_tello_1 ALL DEPENDS ${URDF_TELLO_FILE})
+
 #=============
 # Install
 #=============

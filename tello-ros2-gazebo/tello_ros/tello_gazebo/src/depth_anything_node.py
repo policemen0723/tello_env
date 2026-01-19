@@ -28,12 +28,26 @@ class DepthAnythingNode(Node):
         self.bridge = CvBridge()
         self._warned_zero_stamp = False
 
+        # Parameters for topic names (relative by default so namespace works).
+        self.declare_parameter('rgb_topic', 'image_raw')
+        self.declare_parameter('camera_info_topic', 'camera_info')
+        self.declare_parameter('depth_topic', 'depth/image_raw')
+        self.declare_parameter('depth_rgb_topic', 'depth/rgb')
+        self.declare_parameter('depth_camera_info_topic', 'depth/camera_info')
+        self.declare_parameter('optical_frame_id', '')
+
+        rgb_topic = self.get_parameter('rgb_topic').get_parameter_value().string_value
+        camera_info_topic = self.get_parameter('camera_info_topic').get_parameter_value().string_value
+        depth_topic = self.get_parameter('depth_topic').get_parameter_value().string_value
+        depth_rgb_topic = self.get_parameter('depth_rgb_topic').get_parameter_value().string_value
+        depth_camera_info_topic = self.get_parameter('depth_camera_info_topic').get_parameter_value().string_value
+        self.optical_frame_id = self.get_parameter('optical_frame_id').get_parameter_value().string_value
+
         # Subscribers
-        # Use exact topics
         # Adjust QoS to match Best Effort if necessary, but Gazebo is usually Reliable.
         # We will use default QoS (Reliable).
-        self.img_sub = message_filters.Subscriber(self, ROSImage, "/drone1/image_raw")
-        self.camera_sub = message_filters.Subscriber(self, CameraInfo, "/drone1/camera_info")
+        self.img_sub = message_filters.Subscriber(self, ROSImage, rgb_topic)
+        self.camera_sub = message_filters.Subscriber(self, CameraInfo, camera_info_topic)
 
         # Synchronize exactly to prevent RGB/Depth/CameraInfo timestamp skew.
         self.ts = message_filters.TimeSynchronizer(
@@ -43,9 +57,9 @@ class DepthAnythingNode(Node):
         self.ts.registerCallback(self.callback)
 
         # Publishers
-        self.depth_image_pub = self.create_publisher(ROSImage, "/drone1/depth/image_raw", 10)
-        self.rgb_pub = self.create_publisher(ROSImage, "/drone1/depth/rgb", 10)
-        self.camera_info_pub = self.create_publisher(CameraInfo, "/drone1/depth/camera_info", 10)
+        self.depth_image_pub = self.create_publisher(ROSImage, depth_topic, 10)
+        self.rgb_pub = self.create_publisher(ROSImage, depth_rgb_topic, 10)
+        self.camera_info_pub = self.create_publisher(CameraInfo, depth_camera_info_topic, 10)
         
         self.get_logger().info("Depth Anything Node initialized.")
 
@@ -105,18 +119,21 @@ class DepthAnythingNode(Node):
                 # Force usage of optical frame for correct visualization and SLAM.
                 # Standard ROS convention for cameras: z forward, x right, y down.
                 # Some sources publish base_link as frame_id; override to camera_optical_link.
-                frame_id = cam_info_msg.header.frame_id or ""
-                suffix = self._suffix_from_namespace()
-                if not frame_id or "camera" not in frame_id:
-                    frame_id = f"camera_optical_link{suffix}"
-                elif "camera_optical_link" in frame_id:
-                    pass
-                elif "camera_link" in frame_id:
-                    frame_id = frame_id.replace("camera_link", "camera_optical_link")
+                if self.optical_frame_id:
+                    frame_id = self.optical_frame_id
                 else:
-                    frame_id = f"camera_optical_link{suffix}"
-                if suffix and not re.search(r'_\d+$', frame_id):
-                    frame_id = f"{frame_id}{suffix}"
+                    frame_id = cam_info_msg.header.frame_id or ""
+                    suffix = self._suffix_from_namespace()
+                    if not frame_id or "camera" not in frame_id:
+                        frame_id = f"camera_optical_link{suffix}"
+                    elif "camera_optical_link" in frame_id:
+                        pass
+                    elif "camera_link" in frame_id:
+                        frame_id = frame_id.replace("camera_link", "camera_optical_link")
+                    else:
+                        frame_id = f"camera_optical_link{suffix}"
+                    if suffix and not re.search(r'_\d+$', frame_id):
+                        frame_id = f"{frame_id}{suffix}"
                 
                 # 1. Prepare Depth Image Message
                 depth_image_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="32FC1")
