@@ -1,59 +1,46 @@
-"""Run Nav2 only (expects /<namespace>/map and /<namespace>/odom)."""
+"""Run Nav2 explicitly (Bypassing nav2_bringup defaults)."""
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument, GroupAction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, PushRosNamespace
 
 def generate_launch_description():
     pkg_dir = get_package_share_directory('tello_gazebo')
-    nav2_dir = get_package_share_directory('nav2_bringup')
 
-    # 設定値の取得
+    # 引数の取得
     namespace = LaunchConfiguration('namespace')
-    use_namespace = LaunchConfiguration('use_namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')
     autostart = LaunchConfiguration('autostart')
 
-    # 引数の定義
+    # 引数定義
     declare_namespace = DeclareLaunchArgument(
-        'namespace',
-        default_value='drone1',
-        description='Top-level namespace for Nav2',
-    )
-    declare_use_namespace = DeclareLaunchArgument(
-        'use_namespace',
-        default_value='true',
-        description='Use namespace for Nav2 nodes',
-    )
+        'namespace', default_value='drone1', description='Top-level namespace')
     declare_use_sim_time = DeclareLaunchArgument(
-        'use_sim_time',
-        default_value='true',
-        description='Use simulation time',
-    )
+        'use_sim_time', default_value='true', description='Use simulation time')
     declare_params_file = DeclareLaunchArgument(
         'params_file',
         default_value=os.path.join(pkg_dir, 'config', 'nav2_rtabmap.yaml'),
-        description='Nav2 parameters file',
-    )
+        description='Full path to the ROS2 parameters file to use')
     declare_autostart = DeclareLaunchArgument(
-        'autostart',
-        default_value='true',
-        description='Autostart Nav2 lifecycle nodes',
-    )
+        'autostart', default_value='true', description='Automatically startup the nav2 stack')
 
-    # ---------------------------------------------------------
-    # 修正ポイント: GroupActionを使って強制的にNamespaceに入れる
-    # ---------------------------------------------------------
-    nav2_group = GroupAction([
-        PushRosNamespace(namespace), # これで中のノードは全て /drone1/... になる
+    # リマッピング設定 (cmd_velの流れを整理)
+    # Nav2(controller) -> cmd_vel_nav -> Smoother -> cmd_vel -> Drone
+    cmd_vel_remappings = [
+        ('cmd_vel', 'cmd_vel_nav'),
+        ('cmd_vel_smoothed', 'cmd_vel')
+    ]
 
-        # 1. Depth -> Scan 変換ノード (これもグループ内に入れる)
+    # ノードの定義
+    nav2_nodes = GroupAction([
+        PushRosNamespace(namespace),
+
+        # 1. Depth -> Scan 変換
         Node(
             package='depthimage_to_laserscan',
             executable='depthimage_to_laserscan_node',
@@ -73,27 +60,82 @@ def generate_launch_description():
             ]
         ),
 
-        # 2. Nav2の起動 (引数からnamespaceは外し、外側のPushRosNamespaceに任せる)
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(nav2_dir, 'launch', 'navigation_launch.py')
-            ),
-            launch_arguments={
-                'use_sim_time': use_sim_time,
-                'params_file': params_file,
-                'autostart': autostart,
-                'use_composition': 'False',
-                # ここでの 'namespace' 指定は削除し、親のGroupActionに任せることで重複を防ぐ
-                'use_namespace': 'False', 
-            }.items(),
+        # 2. Controller Server (制御)
+        Node(
+            package='nav2_controller',
+            executable='controller_server',
+            output='screen',
+            parameters=[params_file], # ここで直接YAMLを渡す！
+            remappings=[('cmd_vel', 'cmd_vel_nav')]
+        ),
+
+        # 3. Smoother Server (速度滑らか化)
+        Node(
+            package='nav2_velocity_smoother',
+            executable='velocity_smoother',
+            name='velocity_smoother',
+            output='screen',
+            parameters=[params_file],
+            remappings=cmd_vel_remappings
+        ),
+
+        # 4. Planner Server (経路計画)
+        Node(
+            package='nav2_planner',
+            executable='planner_server',
+            name='planner_server',
+            output='screen',
+            parameters=[params_file]
+        ),
+
+        # 5. Behavior Server (リカバリー動作)
+        Node(
+            package='nav2_behaviors',
+            executable='behavior_server',
+            name='behavior_server',
+            output='screen',
+            parameters=[params_file]
+        ),
+
+        # 6. BT Navigator (行動決定)
+        Node(
+            package='nav2_bt_navigator',
+            executable='bt_navigator',
+            name='bt_navigator',
+            output='screen',
+            parameters=[params_file]
+        ),
+
+        # 7. Waypoint Follower (経由地)
+        Node(
+            package='nav2_waypoint_follower',
+            executable='waypoint_follower',
+            name='waypoint_follower',
+            output='screen',
+            parameters=[params_file]
+        ),
+
+        # 8. Lifecycle Manager (起動管理)
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_navigation',
+            output='screen',
+            parameters=[{'use_sim_time': use_sim_time},
+                        {'autostart': autostart},
+                        {'node_names': ['controller_server',
+                                        'planner_server',
+                                        'behavior_server',
+                                        'bt_navigator',
+                                        'waypoint_follower',
+                                        'velocity_smoother']}]
         ),
     ])
 
     return LaunchDescription([
         declare_namespace,
-        declare_use_namespace,
         declare_use_sim_time,
         declare_params_file,
         declare_autostart,
-        nav2_group, # グループ化したものを起動
+        nav2_nodes
     ])
