@@ -32,6 +32,21 @@ def generate_launch_description():
         parameters=[{'use_sim_time': True}]
     )
 
+    # 2.5 Start PointCloud Generator Node (for Nav2 Obstacle Layer)
+    pc_node = Node(
+        package='tello_gazebo',
+        executable='pointcloud_generator_node.py',
+        name='pointcloud_generator_node',
+        output='screen',
+        namespace=ns,
+        parameters=[{
+            'use_sim_time': True,
+            'depth_topic': '/drone1/depth/image_raw',
+            'camera_info_topic': '/drone1/depth/camera_info',
+            'point_cloud_topic': '/drone1/depth/points'
+        }]
+    )
+
     # 3. Start RTAB-Map
     # RTAB-Map requires:
     # - RGB image
@@ -90,9 +105,10 @@ def generate_launch_description():
                 'visual_odometry': 'true',
                 'icp_odometry': 'false',
 
-                # Force exact RGB/Depth/CameraInfo synchronization via rgbd_sync.
-                'rgbd_sync': 'true',
-                'approx_rgbd_sync': 'false',
+                # Subscribe to individual topics directly (depth_anything_node ensures identical stamps)
+                'rgbd_sync': 'false',
+                'subscribe_depth': 'true',
+                'subscribe_rgb': 'true',
                 'approx_sync': 'false',
                 'approx_sync_max_interval': '0.02',
                 'topic_queue_size': '10',
@@ -105,8 +121,8 @@ def generate_launch_description():
 
                 'rviz': 'true',
                 'rtabmap_viz': 'false',
-                # Relax inlier requirements to reduce dropouts (lower accuracy but more stable).
-                'odom_args': '--Odom/MinInliers 10 --Vis/MinInliers 10',
+                # Relax inlier requirements and force 3DoF to stabilize VO with Depth Estimation
+                'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 5',
                 }.items()
 
         )
@@ -143,6 +159,7 @@ def generate_launch_description():
     return LaunchDescription([
         simple_launch,
         depth_node,
+        pc_node,
         rtabmap_launch,
         tf_optical
     ])
