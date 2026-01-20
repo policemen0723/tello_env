@@ -135,6 +135,8 @@ class DepthAnythingNode(Node):
                 depth_image_msg.header.frame_id = frame_id
                 
                 # 6. Publish実行
+                img_msg.header.stamp = timestamp
+                img_msg.header.frame_id = frame_id
                 self.depth_image_pub.publish(depth_image_msg)
                 self.rgb_pub.publish(img_msg)
                 

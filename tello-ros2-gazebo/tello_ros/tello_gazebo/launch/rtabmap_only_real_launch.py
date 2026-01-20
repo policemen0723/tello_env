@@ -41,6 +41,7 @@ def generate_launch_description():
             'namespace': namespace,
             'use_sim_time': use_sim_time,
             'frame_id': 'base_link',
+            'odom_frame_id': 'odom',
             'map_frame_id': 'map',
             'publish_tf_map': 'true',
             'visual_odometry': 'true',
