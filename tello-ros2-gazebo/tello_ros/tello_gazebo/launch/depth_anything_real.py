@@ -52,7 +52,7 @@ def generate_launch_description():
     tf_optical = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '-1.57', '0', '-1.57', 'camera_link', 'camera_optical_link'],
+        arguments=['0', '0', '0', '-0', '0', '0', 'camera_link', 'camera_optical_link'],
     )
 
     return LaunchDescription([
