@@ -134,24 +134,24 @@ drone1:
       general_goal_checker:
         stateful: True
         plugin: "nav2_controller::SimpleGoalChecker"
-        xy_goal_tolerance: 0.25
-        yaw_goal_tolerance: 0.25
+        xy_goal_tolerance: 0.30 # 【緩和】ふらつき許容のため少し広げる
+        yaw_goal_tolerance: 0.30 # 【緩和】
       
       FollowPath:
         plugin: "nav2_rotation_shim_controller::RotationShimController"
         primary_controller: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-        max_angular_accel: 3.2
+        max_angular_accel: 0.5 # 【修正】1.2 -> 0.5 (急回転禁止)
         rotate_to_heading_min_angle: 0.785
-        desired_linear_vel: 0.2
-        lookahead_dist: 0.6
-        min_lookahead_dist: 0.3
-        max_lookahead_dist: 0.9
-        lookahead_time: 1.5
-        rotate_to_heading_angular_vel: 1.0
+        desired_linear_vel: 0.1 # ゆっくり
+        lookahead_dist: 0.8 # 【修正】0.6 -> 0.8 (遅延対策：遠くを見る)
+        min_lookahead_dist: 0.4
+        max_lookahead_dist: 1.2
+        lookahead_time: 2.0 # 【修正】1.5 -> 2.0 (時間の余裕を持つ)
+        rotate_to_heading_angular_vel: 0.3 # 【修正】0.5 -> 0.3 (ゆっくり回る)
         transform_tolerance: 1.5
         use_velocity_scaled_lookahead_dist: false
         min_approach_linear_velocity: 0.05
-        approach_velocity_scaling_dist: 0.6
+        approach_velocity_scaling_dist: 0.8
 
   local_costmap:
     local_costmap:
@@ -248,10 +248,11 @@ drone1:
       smoothing_frequency: 20.0
       scale_velocities: False
       feedback: "OPEN_LOOP"
-      max_velocity: [0.3, 0.0, 0.5]
-      min_velocity: [-0.3, 0.0, -0.5]
-      max_accel: [2.5, 0.0, 3.2]
-      max_decel: [-2.5, 0.0, -3.2]
+      # 【重要修正】全体的に「じわっと」動く設定に変更
+      max_velocity: [0.1, 0.0, 0.3]     # 0.15 -> 0.1 (最高速度ダウン)
+      min_velocity: [-0.1, 0.0, -0.3]
+      max_accel: [0.2, 0.0, 0.5]        # 1.0 -> 0.2 (加速度を大幅ダウン！これが効く)
+      max_decel: [-0.2, 0.0, -0.5]      # 減速もゆっくりに
       odom_topic: "odom"
       robot_base_frame: "base_link_1"
 
