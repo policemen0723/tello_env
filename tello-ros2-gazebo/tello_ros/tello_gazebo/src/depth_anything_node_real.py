@@ -1,40 +1,40 @@
 #!/usr/bin/env python3
 
+import os
+# 【最強のオフライン設定】
+os.environ["HF_HUB_OFFLINE"] = "1"
+
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 import numpy as np
 import cv2
 import re
 from sensor_msgs.msg import Image as ROSImage, CameraInfo
-from nav_msgs.msg import Odometry as NavOdometry, OccupancyGrid
 from cv_bridge import CvBridge, CvBridgeError
 from transformers import pipeline
 from PIL import Image as PILImage
-import message_filters
 
 class DepthAnythingNode(Node):
     def __init__(self):
-        super().__init__('depth_anything_node')
+        super().__init__('depth_anything_node_real')
         
-        self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
-        # Using the official model fine-tuned for metric depth on indoor scenes (NYUv2)
+        self.get_logger().info("Loading Depth Anything V2 (Debug Mode)...")
         try:
-            # 【修正】model_kwargs={"local_files_only": True} を追加
-            # これにより、HuggingFaceへ接続に行かず、ローカルのキャッシュのみを使用します
             self.depth_estimator = pipeline(
                 task="depth-estimation", 
                 model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
                 model_kwargs={"local_files_only": True}
             )
-            self.get_logger().info("Model loaded successfully (Offline Mode).")
+            self.get_logger().info("Model loaded successfully.")
         except Exception as e:
             self.get_logger().error(f"Failed to load model: {e}")
             self.depth_estimator = None
 
         self.bridge = CvBridge()
-        self._warned_zero_stamp = False
+        self.latest_camera_info = None
 
-        # Parameters for topic names (relative by default so namespace works).
+        # パラメータ設定
         self.declare_parameter('rgb_topic', 'image_raw')
         self.declare_parameter('camera_info_topic', 'camera_info')
         self.declare_parameter('depth_topic', 'depth/image_raw')
@@ -49,107 +49,109 @@ class DepthAnythingNode(Node):
         depth_camera_info_topic = self.get_parameter('depth_camera_info_topic').get_parameter_value().string_value
         self.optical_frame_id = self.get_parameter('optical_frame_id').get_parameter_value().string_value
 
-        # Subscribers
-        self.img_sub = message_filters.Subscriber(self, ROSImage, rgb_topic)
-        self.camera_sub = message_filters.Subscriber(self, CameraInfo, camera_info_topic)
-
-        # Synchronize exactly to prevent RGB/Depth/CameraInfo timestamp skew.
-        self.ts = message_filters.TimeSynchronizer(
-            [self.img_sub, self.camera_sub],
-            queue_size=10,
+        # QoS設定
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
         )
-        self.ts.registerCallback(self.callback)
 
-        # Publishers
+        self.create_subscription(
+            ROSImage, rgb_topic, self.image_callback, qos_profile
+        )
+        self.create_subscription(
+            CameraInfo, camera_info_topic, self.info_callback, qos_profile
+        )
+
         self.depth_image_pub = self.create_publisher(ROSImage, depth_topic, 10)
         self.rgb_pub = self.create_publisher(ROSImage, depth_rgb_topic, 10)
         self.camera_info_pub = self.create_publisher(CameraInfo, depth_camera_info_topic, 10)
         
         self.get_logger().info("Depth Anything Node initialized.")
+        self.get_logger().info(f"Target RGB Topic: {rgb_topic}")
 
-    def _suffix_from_namespace(self):
-        ns = self.get_namespace().strip('/')
-        match = re.search(r'(\d+)$', ns)
-        if match:
-            return f"_{match.group(1)}"
-        return ""
+    def info_callback(self, msg):
+        if self.latest_camera_info is None:
+            self.get_logger().info("[DEBUG] First Camera Info Received!", throttle_duration_sec=1.0)
+        self.latest_camera_info = msg
 
     def estimate_depth(self, cv_image):
         if self.depth_estimator is None:
+            self.get_logger().error("[DEBUG] Estimator is None!")
             return None
         
-        # Convert OpenCV image (BGR) to PIL Image (RGB)
+        # 推論開始ログ（遅い場合はここで止まる）
+        # self.get_logger().info("[DEBUG] Start Inference...", throttle_duration_sec=2.0)
+        
         cv_image_rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         image = PILImage.fromarray(cv_image_rgb)
-
-        # Inference
         result = self.depth_estimator(image)
         
-        # Extract predicted depth (metric, meters)
         depth_tensor = result["predicted_depth"]
         depth_numpy = depth_tensor.numpy().astype(np.float32)
-
         return depth_numpy
 
-    def callback(self, img_msg, cam_info_msg):
+    def image_callback(self, img_msg):
+        # 1. コールバックに入ったか確認（1秒に1回表示）
+        self.get_logger().info(f"[DEBUG] Image Callback Triggered! Time: {img_msg.header.stamp.sec}.{img_msg.header.stamp.nanosec}", throttle_duration_sec=1.0)
+
         try:
+            # 2. 時刻補正の確認
+            if img_msg.header.stamp.sec == 0 and img_msg.header.stamp.nanosec == 0:
+                self.get_logger().warn("[DEBUG] Zero Timestamp Detected! Fixing...", throttle_duration_sec=5.0)
+                current_time = self.get_clock().now().to_msg()
+                timestamp = current_time
+                img_msg.header.stamp = current_time
+            else:
+                timestamp = img_msg.header.stamp
+
+            # 3. 画像変換
             cv_image = self.bridge.imgmsg_to_cv2(img_msg, "bgr8")
         except CvBridgeError as e:
-            self.get_logger().error(f"Error converting image: {e}")
+            self.get_logger().error(f"[DEBUG] CvBridge Error: {e}")
             return
 
         try:
+            # 4. 推論実行
             depth_image = self.estimate_depth(cv_image)
+            
             if depth_image is not None:
-                # Resize depth image to match original image size if necessary
+                # 5. 推論成功
+                # self.get_logger().info("[DEBUG] Inference Success!", throttle_duration_sec=1.0)
+
                 if depth_image.shape[:2] != cv_image.shape[:2]:
                     depth_image = cv2.resize(depth_image, (cv_image.shape[1], cv_image.shape[0]))
 
-                # --- Exact Synchronization Strategy ---
-                if img_msg.header.stamp.sec == 0 and img_msg.header.stamp.nanosec == 0:
-                    timestamp = self.get_clock().now().to_msg()
-                    if not self._warned_zero_stamp:
-                        self.get_logger().warn("Image stamp is zero; using node clock for depth outputs.")
-                        self._warned_zero_stamp = True
-                else:
-                    timestamp = img_msg.header.stamp
-                
                 if self.optical_frame_id:
                     frame_id = self.optical_frame_id
                 else:
-                    frame_id = cam_info_msg.header.frame_id or ""
-                    suffix = self._suffix_from_namespace()
-                    if not frame_id or "camera" not in frame_id:
-                        frame_id = f"camera_optical_link{suffix}"
-                    elif "camera_optical_link" in frame_id:
-                        pass
-                    elif "camera_link" in frame_id:
-                        frame_id = frame_id.replace("camera_link", "camera_optical_link")
-                    else:
-                        frame_id = f"camera_optical_link{suffix}"
-                    if suffix and not re.search(r'_\d+$', frame_id):
-                        frame_id = f"{frame_id}{suffix}"
-                
-                # 1. Prepare Depth Image Message
+                    frame_id = img_msg.header.frame_id
+                    if "camera" not in frame_id: 
+                         frame_id = "camera_optical_link_1" 
+
+                # Depth画像作成
                 depth_image_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="32FC1")
                 depth_image_msg.header.stamp = timestamp
                 depth_image_msg.header.frame_id = frame_id
                 
-                # 2. Prepare RGB Image Message
-                img_msg.header.stamp = timestamp
-                img_msg.header.frame_id = frame_id
-                
-                # 3. Prepare Camera Info Message
-                cam_info_msg.header.stamp = timestamp
-                cam_info_msg.header.frame_id = frame_id
-
-                # Publish all
+                # 6. Publish実行
                 self.depth_image_pub.publish(depth_image_msg)
                 self.rgb_pub.publish(img_msg)
-                self.camera_info_pub.publish(cam_info_msg)
+                
+                self.get_logger().info("[DEBUG] Published Depth & RGB!", throttle_duration_sec=1.0)
+
+                if self.latest_camera_info is not None:
+                    out_info = self.latest_camera_info
+                    out_info.header.stamp = timestamp
+                    out_info.header.frame_id = frame_id
+                    out_info.width = img_msg.width
+                    out_info.height = img_msg.height
+                    self.camera_info_pub.publish(out_info)
+                else:
+                    self.get_logger().warn("[DEBUG] No CameraInfo yet, skipping info pub.", throttle_duration_sec=5.0)
 
         except Exception as e:
-            self.get_logger().error(f"Error processing image: {e}")
+            self.get_logger().error(f"[DEBUG] Error processing image: {e}")
 
 def main(args=None):
     rclpy.init(args=args)

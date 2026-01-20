@@ -1,0 +1,121 @@
+amcl:
+  ros__parameters:
+    use_sim_time: True  # Gazeboの場合はTrue
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: True
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /odom
+    bt_loop_duration: 10
+    default_server_timeout: 20
+
+controller_server:
+  ros__parameters:
+    use_sim_time: True
+    # 【重要】ここをTello用に調整
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 0.3
+    progress_checker_plugin: "progress_checker"
+    
+    # コントローラ（DWB）の設定
+    FollowPath:
+      plugin: "dwb_core::DWBLocalPlanner"
+      debug_trajectory_details: True
+      min_vel_x: 0.0
+      min_vel_y: 0.0
+      max_vel_x: 0.4        # 安全のため遅めに（0.4m/s）
+      max_vel_y: 0.0
+      max_vel_theta: 1.0
+      min_speed_xy: 0.0
+      max_speed_xy: 0.4
+      min_speed_theta: 0.0
+      # Telloは旋回してから進む「非ホロノミック」モードの方が制御が安定しやすい
+      acc_lim_x: 2.5
+      acc_lim_y: 0.0
+      acc_lim_theta: 3.2
+      decel_lim_x: -2.5
+      decel_lim_y: 0.0
+      decel_lim_theta: -3.2
+      vx_samples: 20
+      vy_samples: 5
+      vtheta_samples: 20
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
+      transform_tolerance: 0.2
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: True
+      global_frame: odom
+      plugin_names: ["obstacle_layer", "inflation_layer"]
+      plugin_types: ["nav2_costmap_2d::ObstacleLayer", "nav2_costmap_2d::InflationLayer"]
+      rolling_window: true
+      width: 3
+      height: 3
+      resolution: 0.05
+      # 【重要】ドローンの半径（10cm程度）
+      robot_radius: 0.1
+      inflation_layer:
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.45
+      obstacle_layer:
+        enabled: True
+        observation_sources: scan
+        scan:
+          topic: /drone1/scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: True
+      robot_radius: 0.1  # ここも合わせる
+      resolution: 0.05
+      track_unknown_space: true
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        enabled: True
+        observation_sources: scan
+        scan:
+          topic: /drone1/scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+      static_layer:
+        map_subscribe_transient_local: True
+      inflation_layer:
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.45
+
+planner_server:
+  ros__parameters:
+    use_sim_time: True
+    expected_planner_frequency: 20.0
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_navfn_planner::NavfnPlanner"
+      tolerance: 0.5
+      use_astar: false
+      allow_unknown: true
+
+recoveries_server:
+  ros__parameters:
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+    cycle_frequency: 10.0
+    recovery_plugins: ["spin", "backup", "wait"]
+    spin:
+      plugin: "nav2_recoveries::Spin"
+    backup:
+      plugin: "nav2_recoveries::BackUp"
+    wait:
+      plugin: "nav2_recoveries::Wait"

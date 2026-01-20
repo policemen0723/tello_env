@@ -81,7 +81,13 @@ install(
 
 ## Install Python scripts
 install(
-  PROGRAMS src/inject_entity.py src/depth_anything_node.py src/odom_to_tf.py src/pointcloud_generator_node.py src/tello_autonomous_controller.py
+  PROGRAMS
+    src/inject_entity.py
+    src/depth_anything_node.py
+    src/depth_anything_node_real.py
+    src/odom_to_tf.py
+    src/pointcloud_generator_node.py
+    src/tello_autonomous_controller.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
