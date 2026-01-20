@@ -54,7 +54,7 @@ def generate_launch_description():
             remappings=[
                 ('depth', 'depth/image_raw'),
                 ('depth_camera_info', 'depth/camera_info'),
-                ('scan', 'scan')
+                ('scan', '/scan')
             ]
         ),
 
