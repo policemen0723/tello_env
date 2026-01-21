@@ -42,7 +42,7 @@ namespace tello_gazebo
   const double MAX_Z_A = 4.0;
   const double MAX_ANG_A = M_PI;
 
-  const double TAKEOFF_Z = 1.0;       // Takeoff target z position
+  const double TAKEOFF_Z = 3.0;       // Takeoff target z position
   const double TAKEOFF_Z_V = 0.5;     // Takeoff target z velocity
 
   const double LAND_Z = 0.1;          // Land target z position
