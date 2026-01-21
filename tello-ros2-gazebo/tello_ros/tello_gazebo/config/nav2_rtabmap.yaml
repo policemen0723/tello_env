@@ -117,7 +117,7 @@ drone1:
   controller_server:
     ros__parameters:
       use_sim_time: True
-      controller_frequency: 5.0
+      controller_frequency: 10.0
       min_x_velocity_threshold: 0.001
       min_y_velocity_threshold: 0.5
       min_theta_velocity_threshold: 0.001
@@ -140,14 +140,14 @@ drone1:
       FollowPath:
         plugin: "nav2_rotation_shim_controller::RotationShimController"
         primary_controller: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-        max_angular_accel: 0.5 # 【修正】1.2 -> 0.5 (急回転禁止)
-        rotate_to_heading_min_angle: 0.785
+        max_angular_accel: 0.2 # 【修正】0.5 -> 0.2 (急回転禁止)
+        rotate_to_heading_min_angle: 3.14
         desired_linear_vel: 0.1 # ゆっくり
         lookahead_dist: 0.8 # 【修正】0.6 -> 0.8 (遅延対策：遠くを見る)
         min_lookahead_dist: 0.4
         max_lookahead_dist: 1.2
         lookahead_time: 2.0 # 【修正】1.5 -> 2.0 (時間の余裕を持つ)
-        rotate_to_heading_angular_vel: 0.3 # 【修正】0.5 -> 0.3 (ゆっくり回る)
+        rotate_to_heading_angular_vel: 0.1 # 【修正】0.3 -> 0.1 (ゆっくり回る)
         transform_tolerance: 1.5
         use_velocity_scaled_lookahead_dist: false
         min_approach_linear_velocity: 0.05
@@ -156,9 +156,9 @@ drone1:
   local_costmap:
     local_costmap:
       ros__parameters:
-        update_frequency: 2.0
+        update_frequency: 5.0
         transform_tolerance: 1.5
-        publish_frequency: 1.0
+        publish_frequency: 2.0
         global_frame: odom
         robot_base_frame: base_link_1
         use_sim_time: True
@@ -166,13 +166,13 @@ drone1:
         width: 3
         height: 3
         resolution: 0.1
-        robot_radius: 0.15
+        robot_radius: 0.08
         plugins: ["voxel_layer", "inflation_layer"]
         
         inflation_layer:
           plugin: "nav2_costmap_2d::InflationLayer"
           cost_scaling_factor: 3.0
-          inflation_radius: 0.55
+          inflation_radius: 0.4
 
         voxel_layer:
           plugin: "nav2_costmap_2d::VoxelLayer"
@@ -197,13 +197,13 @@ drone1:
   global_costmap:
     global_costmap:
       ros__parameters:
-        update_frequency: 0.5
+        update_frequency: 1.0
         transform_tolerance: 1.5
         publish_frequency: 0.5
         global_frame: map
         robot_base_frame: base_link_1
         use_sim_time: True
-        robot_radius: 0.15
+        robot_radius: 0.08
         resolution: 0.1
         track_unknown_space: true
         plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
@@ -249,10 +249,10 @@ drone1:
       scale_velocities: False
       feedback: "OPEN_LOOP"
       # 【重要修正】全体的に「じわっと」動く設定に変更
-      max_velocity: [0.1, 0.0, 0.3]     # 0.15 -> 0.1 (最高速度ダウン)
-      min_velocity: [-0.1, 0.0, -0.3]
-      max_accel: [0.2, 0.0, 0.5]        # 1.0 -> 0.2 (加速度を大幅ダウン！これが効く)
-      max_decel: [-0.2, 0.0, -0.5]      # 減速もゆっくりに
+      max_velocity: [0.1, 0.0, 0.1]     # 0.15 -> 0.1 (最高速度ダウン)
+      min_velocity: [-0.1, 0.0, -0.1]
+      max_accel: [0.2, 0.0, 0.1]        # 1.0 -> 0.2 (加速度を大幅ダウン！これが効く)
+      max_decel: [-0.2, 0.0, -0.1]      # 減速もゆっくりに
       odom_topic: "odom"
       robot_base_frame: "base_link_1"
 

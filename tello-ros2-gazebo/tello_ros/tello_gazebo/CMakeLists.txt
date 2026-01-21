@@ -84,6 +84,7 @@ install(
   PROGRAMS
     src/inject_entity.py
     src/depth_anything_node.py
+    src/node_outdoor.py
     src/depth_anything_node_real.py
     src/unidepth_node.py
     src/odom_to_tf.py
