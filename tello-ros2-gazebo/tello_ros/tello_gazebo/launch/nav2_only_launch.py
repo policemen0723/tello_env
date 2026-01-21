@@ -130,6 +130,19 @@ def generate_launch_description():
                                         'waypoint_follower',
                                         'velocity_smoother']}]
         ),
+
+        # 9. Velocity Scaler: cmd_vel -> Scaler -> cmd_vel_in (Drone)
+        Node(
+            package='tello_gazebo',
+            executable='cmd_vel_scaler.py',
+            name='cmd_vel_scaler',
+            output='screen',
+            parameters=[{'scale_factor': 0.3}], # 0.3倍に減速
+            remappings=[
+                ('cmd_vel', 'cmd_vel'),
+                ('cmd_vel_in', 'cmd_vel_in')
+            ]
+        ),
     ])
 
     return LaunchDescription([

@@ -91,6 +91,7 @@ install(
     src/pointcloud_generator_node.py
     src/tello_autonomous_controller.py
     src/cmd_vel_scaler.py
+    src/cmd_vel_to_rc.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

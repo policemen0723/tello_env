@@ -130,10 +130,21 @@ def generate_launch_description():
         ),
     ])
 
+    # Convert cmd_vel (m/s) to control (RC -100~100) for Real Tello
+    cmd_vel_converter = Node(
+        package='tello_gazebo',
+        executable='cmd_vel_to_rc.py',
+        name='cmd_vel_to_rc',
+        output='screen',
+        # Default scale is 30.0 (1m/s = 30 RC). Adjust if too fast/slow.
+        parameters=[{'linear_scale': 30.0}, {'angular_scale': 30.0}]
+    )
+
     return LaunchDescription([
         declare_namespace,
         declare_use_sim_time,
         declare_params_file,
         declare_autostart,
-        nav2_nodes
+        nav2_nodes,
+        cmd_vel_converter
     ])
