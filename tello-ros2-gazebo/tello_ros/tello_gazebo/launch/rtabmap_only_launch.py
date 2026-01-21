@@ -58,9 +58,10 @@ def generate_launch_description():
             'camera_info_topic': 'depth/camera_info',
             'rviz': rviz,
             'rtabmap_viz': 'false',
-            # 地図生成の厳密なフィルタを外し、同期ズレ対策だけ残す
-            'rtabmap_args': '--delete_db_on_start --Grid/FromDepth true',
-            'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 5',
+            # 地図生成の厳密なフィルタを外し、同期ズレ対策だけ残す + ノイズ除去
+            'rtabmap_args': '--delete_db_on_start --Grid/FromDepth true --Grid/NoiseFilteringRadius 0.2 --Grid/NoiseFilteringMinNeighbors 5 --Grid/RangeMax 3.0 --Grid/RayTracing true',
+            # 高速化のために特徴点数を制限
+            'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 10 --Vis/MaxFeatures 500',
         }.items(),
     )
 
