@@ -62,9 +62,10 @@ def generate_launch_description():
             'imu_in_topic': 'imu',
             'imu_out_topic': 'imu_sanitized',
             'frame_id': 'base_link_1',
-            'orientation_covariance': [0.05, 0.05, 0.1],
-            'angular_velocity_covariance': [0.01, 0.01, 0.02],
-            'linear_acceleration_covariance': [0.1, 0.1, 0.2],
+            # Down-weight IMU heavily to reduce its influence in EKF.
+            'orientation_covariance': [2.0, 2.0, 8.0],
+            'angular_velocity_covariance': [0.5, 0.5, 1.0],
+            'linear_acceleration_covariance': [4.0, 4.0, 8.0],
         }],
     )
 
