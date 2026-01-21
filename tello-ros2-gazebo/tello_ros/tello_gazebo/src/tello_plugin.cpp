@@ -42,9 +42,6 @@ namespace tello_gazebo
   const double MAX_Z_A = 4.0;
   const double MAX_ANG_A = M_PI;
 
-  const double TAKEOFF_Z = 1.0;       // Takeoff target z position
-  const double TAKEOFF_Z_V = 0.5;     // Takeoff target z velocity
-
   const double LAND_Z = 0.1;          // Land target z position
   const double LAND_Z_V = -0.5;       // Land target z velocity
 
@@ -80,6 +77,8 @@ namespace tello_gazebo
     ignition::math::Vector3d gravity_;
     ignition::math::Vector3d center_of_mass_{0, 0, 0};
     int battery_duration_{BATTERY_DURATION};
+    double takeoff_z_{1.0};
+    double takeoff_z_v_{0.5};
 
     // Connection to Gazebo message bus
     gazebo::event::ConnectionPtr update_connection_;
@@ -177,7 +176,7 @@ namespace tello_gazebo
           break;
 
         case FlightState::taking_off:
-          set_target_velocities(0, 0, TAKEOFF_Z_V, 0);
+          set_target_velocities(0, 0, takeoff_z_v_, 0);
           break;
 
         case FlightState::landing:
@@ -204,6 +203,12 @@ namespace tello_gazebo
       if (sdf->HasElement("battery_duration")) {
         battery_duration_ = sdf->GetElement("center_of_mass")->Get<int>();
       }
+      if (sdf->HasElement("takeoff_z")) {
+        takeoff_z_ = sdf->GetElement("takeoff_z")->Get<double>();
+      }
+      if (sdf->HasElement("takeoff_z_v")) {
+        takeoff_z_v_ = sdf->GetElement("takeoff_z_v")->Get<double>();
+      }
 
       base_link_ = model->GetLink(link_name);
       GZ_ASSERT(base_link_ != nullptr, "Missing link");
@@ -218,6 +223,8 @@ namespace tello_gazebo
       std::cout << "center_of_mass: " << center_of_mass_ << std::endl;
       std::cout << "gravity: " << gravity_ << std::endl;
       std::cout << "battery_duration: " << battery_duration_ << std::endl;
+      std::cout << "takeoff_z: " << takeoff_z_ << std::endl;
+      std::cout << "takeoff_z_v: " << takeoff_z_v_ << std::endl;
       std::cout << "-----------------------------------------" << std::endl;
       std::cout << std::endl;
 
@@ -384,7 +391,7 @@ namespace tello_gazebo
 
       // Finish pending actions
       ignition::math::Pose3d pose = base_link_->WorldPose();
-      if (flight_state_ == FlightState::taking_off && pose.Pos().Z() > TAKEOFF_Z) {
+      if (flight_state_ == FlightState::taking_off && pose.Pos().Z() > takeoff_z_) {
         transition(FlightState::flying);
         respond_ok();
       } else if (flight_state_ == FlightState::landing && pose.Pos().Z() < LAND_Z) {

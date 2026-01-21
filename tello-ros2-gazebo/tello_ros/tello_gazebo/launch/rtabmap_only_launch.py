@@ -18,6 +18,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     rviz = LaunchConfiguration('rviz')
     publish_optical_tf = LaunchConfiguration('publish_optical_tf')
+    publish_odom_tf = LaunchConfiguration('publish_odom_tf')
 
     declare_namespace = DeclareLaunchArgument(
         'namespace',
@@ -39,6 +40,11 @@ def generate_launch_description():
         default_value='false',
         description='Publish static TF camera_link_1 -> camera_optical_link_1 (keep false if DepthAnything publishes it)',
     )
+    declare_publish_odom_tf = DeclareLaunchArgument(
+        'publish_odom_tf',
+        default_value='false',
+        description='Let RTAB-Map publish odom->base_link TF (disable when EKF publishes it)',
+    )
 
     rtabmap_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -50,6 +56,7 @@ def generate_launch_description():
             'frame_id': 'base_link_1',
             'map_frame_id': 'map',
             'publish_tf_map': 'true',
+            'publish_tf': publish_odom_tf,
             'visual_odometry': 'true',
             'icp_odometry': 'false',
             'rgbd_sync': 'true',
@@ -83,6 +90,7 @@ def generate_launch_description():
         declare_use_sim_time,
         declare_rviz,
         declare_publish_optical_tf,
+        declare_publish_odom_tf,
         rtabmap_launch,
         tf_optical,
     ])

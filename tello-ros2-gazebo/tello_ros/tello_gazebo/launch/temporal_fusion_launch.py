@@ -34,7 +34,7 @@ def generate_launch_description():
             'odom_topic': 'odometry/filtered',
             'output_topic': 'temporal/points',
             'output_frame': 'odom',
-            'depth_frame': 'camera_link_1',
+            'depth_frame': 'camera_optical_link_1',
             'stride': 4,
             'min_depth': 0.3,
             'max_depth': 5.0,
