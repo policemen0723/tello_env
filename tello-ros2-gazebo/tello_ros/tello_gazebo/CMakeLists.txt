@@ -86,6 +86,8 @@ install(
     src/depth_anything_node.py
     src/depth_anything_node_real.py
     src/unidepth_node.py
+    src/flight_data_to_twist.py
+    src/imu_sanitizer.py
     src/odom_to_tf.py
     src/pointcloud_generator_node.py
     src/tello_autonomous_controller.py

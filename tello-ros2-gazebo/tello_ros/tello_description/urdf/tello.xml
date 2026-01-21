@@ -109,6 +109,62 @@
             <center_of_mass>0 0 0</center_of_mass>
         </plugin>
     </gazebo>
+    <!-- IMU sensor for Gazebo -->
+    <gazebo reference="base_link${suffix}">
+        <sensor name="imu_sensor${suffix}" type="imu">
+            <always_on>true</always_on>
+            <update_rate>100.0</update_rate>
+            <imu>
+                <angular_velocity>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.0002</stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.0002</stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.0002</stddev>
+                        </noise>
+                    </z>
+                </angular_velocity>
+                <linear_acceleration>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.001</stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.001</stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.001</stddev>
+                        </noise>
+                    </z>
+                </linear_acceleration>
+            </imu>
+            <plugin name="imu_plugin${suffix}" filename="libgazebo_ros_imu_sensor.so">
+                <ros>
+                    <namespace>${topic_ns}</namespace>
+                    <remapping>~/out:=imu</remapping>
+                </ros>
+                <frame_name>base_link${suffix}</frame_name>
+            </plugin>
+        </sensor>
+    </gazebo>
     <!-- Ground Truth plugin commented out to avoid TF conflict with Visual Odometry
     <gazebo>
         <plugin name="ground_truth" filename="libgazebo_ros_p3d.so">
