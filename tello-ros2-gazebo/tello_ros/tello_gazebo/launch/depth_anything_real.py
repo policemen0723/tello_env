@@ -39,7 +39,7 @@ def generate_launch_description():
             'depth_topic': 'depth/image_raw',
             'depth_rgb_topic': 'depth/rgb',
             'depth_camera_info_topic': 'depth/camera_info',
-            'optical_frame_id': 'camera_optical_link',
+            'optical_frame_id': 'camera_link_1',
         }],
     )
 

@@ -2,6 +2,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -23,7 +24,7 @@ def generate_launch_description():
     )
     declare_publish_optical_tf = DeclareLaunchArgument(
         'publish_optical_tf',
-        default_value='false',
+        default_value='true',
         description='Publish static TF camera_link_1 -> camera_optical_link_1',
     )
 
@@ -54,23 +55,16 @@ def generate_launch_description():
     tf_optical = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '-1.57', '0', '-1.57', 'camera_link_1', 'camera_optical_link_1'],
+        arguments=['0', '0', '0', '0', '0', '-1.57', 'camera_link_1', 'camera_optical_link_1'],
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
-        condition=None,  # set below (LaunchCondition無しでシンプルにしたいので別案を提示)
+        condition=IfCondition(publish_optical_tf),
     )
-
-    # LaunchCondition を使わず最小にしたい場合：
-    # publish_optical_tf を true/falseで切り替えたいなら `IfCondition` が必要。
-    # いったん最小構成として「TF出すならこのノード行をコメント解除」で運用が楽です。
-    #
-    # ↓最小運用：TFが必要なときだけこのノードを追加して起動してください。
-    #
-    # return LaunchDescription([declare_namespace, declare_use_sim_time, depth_node, tf_optical])
 
     return LaunchDescription([
         declare_namespace,
         declare_use_sim_time,
+        declare_publish_optical_tf,
         depth_node,
-        # tf_optical,  # TFが無いならコメント外す
+        tf_optical,
     ])

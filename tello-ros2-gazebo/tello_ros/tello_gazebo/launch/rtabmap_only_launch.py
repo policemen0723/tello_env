@@ -5,6 +5,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -16,6 +17,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     rviz = LaunchConfiguration('rviz')
+    publish_optical_tf = LaunchConfiguration('publish_optical_tf')
 
     declare_namespace = DeclareLaunchArgument(
         'namespace',
@@ -31,6 +33,11 @@ def generate_launch_description():
         'rviz',
         default_value='false',
         description='Launch RViz with RTAB-Map config',
+    )
+    declare_publish_optical_tf = DeclareLaunchArgument(
+        'publish_optical_tf',
+        default_value='false',
+        description='Publish static TF camera_link_1 -> camera_optical_link_1 (keep false if DepthAnything publishes it)',
     )
 
     rtabmap_launch = IncludeLaunchDescription(
@@ -68,12 +75,14 @@ def generate_launch_description():
         package='tf2_ros',
         executable='static_transform_publisher',
         arguments=['0', '0', '0', '-1.57', '0', '-1.57', 'camera_link_1', 'camera_optical_link_1'],
+        condition=IfCondition(publish_optical_tf),
     )
 
     return LaunchDescription([
         declare_namespace,
         declare_use_sim_time,
         declare_rviz,
+        declare_publish_optical_tf,
         rtabmap_launch,
         tf_optical,
     ])

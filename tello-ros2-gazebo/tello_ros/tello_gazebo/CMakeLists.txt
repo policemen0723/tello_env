@@ -88,6 +88,7 @@ install(
     src/unidepth_node.py
     src/flight_data_to_twist.py
     src/imu_sanitizer.py
+    src/temporal_fusion_node.py
     src/odom_to_tf.py
     src/pointcloud_generator_node.py
     src/tello_autonomous_controller.py
