@@ -2,9 +2,10 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node, SetRemap
 
 
 def generate_launch_description():
@@ -50,19 +51,37 @@ def generate_launch_description():
         )
     )
 
-    nav2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(nav2_dir, 'launch', 'navigation_launch.py')
-        ),
-        launch_arguments={
-            'namespace': namespace,
-            'use_namespace': use_namespace,
-            'use_sim_time': use_sim_time,
-            'params_file': params_file,
-            'autostart': autostart,
-            'use_composition': 'False',
-        }.items(),
+    # Velocity Scaler Node: Nav2(cmd_vel_nav) -> Scaler -> Tello(cmd_vel)
+    cmd_vel_scaler_node = Node(
+        package='tello_gazebo',
+        executable='cmd_vel_scaler.py',
+        name='cmd_vel_scaler',
+        namespace=namespace,
+        output='screen',
+        parameters=[{'scale_factor': 0.3}], # 0.3倍に減速
+        remappings=[
+            ('cmd_vel_nav', 'cmd_vel_nav'), # Input
+            ('cmd_vel', 'cmd_vel')          # Output to drone
+        ]
     )
+
+    # Nav2 Launch wrapped with Remap
+    nav2_launch_group = GroupAction([
+        SetRemap(src='cmd_vel', dst='cmd_vel_nav'),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(nav2_dir, 'launch', 'navigation_launch.py')
+            ),
+            launch_arguments={
+                'namespace': namespace,
+                'use_namespace': use_namespace,
+                'use_sim_time': use_sim_time,
+                'params_file': params_file,
+                'autostart': autostart,
+                'use_composition': 'False',
+            }.items(),
+        )
+    ])
 
     return LaunchDescription([
         declare_namespace,
@@ -71,5 +90,6 @@ def generate_launch_description():
         declare_params_file,
         declare_autostart,
         rtabmap_launch,
-        nav2_launch,
+        cmd_vel_scaler_node,
+        nav2_launch_group,
     ])

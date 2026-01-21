@@ -105,14 +105,9 @@ class DepthAnythingNode(Node):
                 if depth_image.shape[:2] != cv_image.shape[:2]:
                     depth_image = cv2.resize(depth_image, (cv_image.shape[1], cv_image.shape[0]))
 
-                # --- Exact Synchronization Strategy ---
-                if img_msg.header.stamp.sec == 0 and img_msg.header.stamp.nanosec == 0:
-                    timestamp = self.get_clock().now().to_msg()
-                    if not self._warned_zero_stamp:
-                        self.get_logger().warn("Image stamp is zero; using node clock for depth outputs.")
-                        self._warned_zero_stamp = True
-                else:
-                    timestamp = img_msg.header.stamp
+                # --- Current Time Synchronization Strategy ---
+                # Always use current node time to avoid TF_OLD_DATA errors due to inference delay.
+                timestamp = self.get_clock().now().to_msg()
                 
                 if self.optical_frame_id:
                     frame_id = self.optical_frame_id

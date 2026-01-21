@@ -90,6 +90,7 @@ install(
     src/odom_to_tf.py
     src/pointcloud_generator_node.py
     src/tello_autonomous_controller.py
+    src/cmd_vel_scaler.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
