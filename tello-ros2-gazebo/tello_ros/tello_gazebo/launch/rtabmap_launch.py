@@ -123,6 +123,9 @@ def generate_launch_description():
                 'rtabmap_viz': 'false',
                 # Relax inlier requirements and force 3DoF to stabilize VO with Depth Estimation
                 'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 5',
+                
+                # Add noise filtering for the occupancy grid to remove small depth artifacts
+                'rtabmap_args': '--Grid/NoiseFilteringRadius 0.2 --Grid/NoiseFilteringMinNeighbors 5 --Grid/RangeMax 3.0 --Grid/RayTracing true',
                 }.items()
 
         )
