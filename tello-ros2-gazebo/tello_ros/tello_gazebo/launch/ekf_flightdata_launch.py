@@ -51,6 +51,23 @@ def generate_launch_description():
         }],
     )
 
+    imu_sanitizer = Node(
+        package='tello_gazebo',
+        executable='imu_sanitizer.py',
+        name='imu_sanitizer',
+        namespace=namespace,
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'imu_in_topic': 'imu',
+            'imu_out_topic': 'imu_sanitized',
+            'frame_id': 'base_link_1',
+            'orientation_covariance': [0.05, 0.05, 0.1],
+            'angular_velocity_covariance': [0.01, 0.01, 0.02],
+            'linear_acceleration_covariance': [0.1, 0.1, 0.2],
+        }],
+    )
+
     ekf_node = Node(
         package='robot_localization',
         executable='ekf_node',
@@ -68,5 +85,6 @@ def generate_launch_description():
         declare_use_sim_time,
         declare_params_file,
         flight_twist,
+        imu_sanitizer,
         ekf_node,
     ])
