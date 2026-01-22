@@ -15,18 +15,18 @@ class CmdVelScaler(Node):
         self.get_logger().info(f"CmdVelScaler initialized with factor: {self.scale_factor}")
 
         # Subscriber: Listens to the original command from Nav2
-        # We expect Nav2 to publish to 'cmd_vel_nav' (remapped from cmd_vel)
+        # We expect Nav2 (Smoother) to publish to 'cmd_vel'
         self.sub = self.create_subscription(
             Twist,
-            'cmd_vel_nav',
+            'cmd_vel',
             self.callback,
             10
         )
 
-        # Publisher: Sends the scaled command to the drone
+        # Publisher: Sends the scaled command to the drone (which now listens to cmd_vel_in)
         self.pub = self.create_publisher(
             Twist,
-            'cmd_vel',
+            'cmd_vel_in',
             10
         )
 

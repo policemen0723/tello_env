@@ -54,10 +54,10 @@ def generate_launch_description():
              arguments=[urdf_path]),
 
         # Joystick driver, generates /namespace/joy messages
-        Node(package='joy', executable='joy_node', output='screen',
-             namespace=namespace),
+        # Node(package='joy', executable='joy_node', output='screen',
+        #      namespace=namespace),
 
         # Joystick controller, generates /namespace/cmd_vel messages
-        Node(package='tello_driver', executable='tello_joy_main', output='screen',
-             namespace=namespace),
+        # Node(package='tello_driver', executable='tello_joy_main', output='screen',
+        #      namespace=namespace),
     ])

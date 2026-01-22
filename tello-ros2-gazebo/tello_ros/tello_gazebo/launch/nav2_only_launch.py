@@ -30,10 +30,10 @@ def generate_launch_description():
         'autostart', default_value='true', description='Automatically startup the nav2 stack')
 
     # リマッピング設定 (cmd_velの流れを整理)
-    # Nav2(controller) -> cmd_vel_nav -> Smoother -> cmd_vel -> Drone
+    # Nav2(controller) -> cmd_vel_nav -> Smoother -> cmd_vel -> Scaler -> cmd_vel_in -> Drone
     cmd_vel_remappings = [
-        ('cmd_vel', 'cmd_vel_nav'),
-        ('cmd_vel_smoothed', 'cmd_vel')
+        ('cmd_vel', 'cmd_vel_nav'),       # Input to Smoother (from Controller)
+        ('cmd_vel_smoothed', 'cmd_vel')   # Output from Smoother (to Scaler)
     ]
 
     # ノードの定義
@@ -138,10 +138,10 @@ def generate_launch_description():
             name='cmd_vel_scaler',
             output='screen',
             parameters=[{'scale_factor': 0.3}], # 0.3倍に減速
-            remappings=[
-                ('cmd_vel', 'cmd_vel'),
-                ('cmd_vel_in', 'cmd_vel_in')
-            ]
+            # remappings=[
+            #    ('cmd_vel', 'cmd_vel'),
+            #    ('cmd_vel_in', 'cmd_vel_in')
+            # ]
         ),
     ])
 
