@@ -48,7 +48,8 @@ class CmdVelToRC(Node):
         rc_msg.linear.z = msg.linear.z * self.linear_scale 
 
         # Angular velocity (rad/s) to RC value
-        rc_msg.angular.z = msg.angular.z * self.angular_scale
+        # Inverting the sign to match Tello's rotation convention
+        rc_msg.angular.z = -1.0 * msg.angular.z * self.angular_scale
 
         # Clamp values to -100 to 100
         rc_msg.linear.x = max(min(rc_msg.linear.x, 100.0), -100.0)

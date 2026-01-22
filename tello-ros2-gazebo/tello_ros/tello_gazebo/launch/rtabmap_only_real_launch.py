@@ -50,7 +50,7 @@ def generate_launch_description():
             'subscribe_depth': 'true',
             'subscribe_rgb': 'true',
             'approx_sync': 'true',
-            'approx_sync_max_interval': '0.05',
+            'approx_sync_max_interval': '0.1',
             'topic_queue_size': '10',
             'sync_queue_size': '20',
             'qos': '2',
@@ -60,7 +60,7 @@ def generate_launch_description():
             'rviz': rviz,
             'rtabmap_viz': 'false',
             'rtabmap_args': '--delete_db_on_start --Grid/FromDepth true',
-            'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 5',
+            'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 0 --Odom/ResetCountdown 1 --Vis/EstimationType 1',
         }.items(),
     )
 
