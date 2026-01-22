@@ -45,7 +45,7 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'use_sim_time': use_sim_time,
-                'scan_height': 10,
+                'scan_height': 100,
                 'scan_time': 0.033,
                 'range_min': 0.3,
                 'range_max': 5.0,
@@ -136,8 +136,8 @@ def generate_launch_description():
         executable='cmd_vel_to_rc.py',
         name='cmd_vel_to_rc',
         output='screen',
-        # Default scale is 30.0 (1m/s = 30 RC). Adjust if too fast/slow.
-        parameters=[{'linear_scale': 30.0}, {'angular_scale': 30.0}]
+        # Adjusted scales: 0.1 m/s * 200 = RC 20. (Tello deadzone is around 10-15)
+        parameters=[{'linear_scale': 200.0}, {'angular_scale': 100.0}]
     )
 
     return LaunchDescription([

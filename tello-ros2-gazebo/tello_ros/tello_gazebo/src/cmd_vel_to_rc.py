@@ -42,11 +42,9 @@ class CmdVelToRC(Node):
         rc_msg = Twist()
         
         # Convert m/s to RC value (-100 to 100)
-        # Note: Nav2 frame (x forward, y left) matches Tello frame usually.
-        # Check Tello Y direction: +Y is Left in standard ROS, check if Tello driver expects same.
-        
-        rc_msg.linear.x = msg.linear.x * self.linear_scale
-        rc_msg.linear.y = msg.linear.y * self.linear_scale
+        # Swapping X and Y as requested by the user
+        rc_msg.linear.x = msg.linear.y * self.linear_scale
+        rc_msg.linear.y = msg.linear.x * self.linear_scale
         rc_msg.linear.z = msg.linear.z * self.linear_scale 
 
         # Angular velocity (rad/s) to RC value

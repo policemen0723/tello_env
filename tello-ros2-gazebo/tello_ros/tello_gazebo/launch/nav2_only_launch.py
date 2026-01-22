@@ -47,7 +47,7 @@ def generate_launch_description():
             name='depthimage_to_laserscan',
             output='screen',
             parameters=[{
-                'scan_height': 10,
+                'scan_height': 100,
                 'scan_time': 0.033,
                 'range_min': 0.3,
                 'range_max': 5.0,

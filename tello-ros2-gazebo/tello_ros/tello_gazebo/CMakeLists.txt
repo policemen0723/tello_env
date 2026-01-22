@@ -92,6 +92,9 @@ install(
     src/tello_autonomous_controller.py
     src/cmd_vel_scaler.py
     src/cmd_vel_to_rc.py
+    src/send_goal.py
+    src/tello_keep_alive.py
+    src/tello_takeoff_hover.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
