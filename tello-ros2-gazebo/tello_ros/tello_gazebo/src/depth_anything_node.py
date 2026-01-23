@@ -6,57 +6,47 @@ import numpy as np
 import cv2
 import re
 from sensor_msgs.msg import Image as ROSImage, CameraInfo
-from nav_msgs.msg import Odometry as NavOdometry, OccupancyGrid
 from cv_bridge import CvBridge, CvBridgeError
 from transformers import pipeline
 from PIL import Image as PILImage
 import message_filters
+from message_filters import ApproximateTimeSynchronizer # 近似同期用に追加
 
 class DepthAnythingNode(Node):
     def __init__(self):
         super().__init__('depth_anything_node')
         
-        # -------------------------indoor-baseモデルに切り替え-----------------------
-        self.declare_parameter('input_scale', 0.5) # Resize input to 50% width/height (1/4 area) for speed
+        # モデル設定
+        self.declare_parameter('input_scale', 1.0) 
         self.input_scale = self.get_parameter('input_scale').value
-
-        self.get_logger().info(f"Loading Depth Anything V2 Metric Indoor Base model with input scale {self.input_scale}...")
+        self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
         
         try:
-            # Switch to Base model, allow download
+            import torch
+            if torch.cuda.is_available():
+                device = 0  # Use first GPU
+                self.get_logger().info(f"CUDA available: {torch.cuda.get_device_name(0)}")
+            else:
+                device = -1  # CPU fallback
+                self.get_logger().warn("CUDA not available, using CPU (slow)")
+            
             self.depth_estimator = pipeline(
                 task="depth-estimation", 
-                model="depth-anything/Depth-Anything-V2-Metric-Indoor-Base-hf",
-                model_kwargs={"local_files_only": False}
+                model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
+                model_kwargs={"local_files_only": True},
+                device=device
             )
-            self.get_logger().info("Model loaded successfully.")
-        #------------------------------------------------------------------------
-
-        #-------------------indoor-smallモデルに切り替え----------------------------
-        # self.declare_parameter('input_scale', 1.0) 
-        # self.input_scale = self.get_parameter('input_scale').value
-        # self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
-        # # Using the official model fine-tuned for metric depth on indoor scenes (NYUv2)
-        # try:
-        #     # 【修正】model_kwargs={"local_files_only": True} を追加
-        #     # これにより、HuggingFaceへ接続に行かず、ローカルのキャッシュのみを使用します
-        #     self.depth_estimator = pipeline(
-        #         task="depth-estimation", 
-        #         model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
-        #         model_kwargs={"local_files_only": True}
-        #     )
-        #     self.get_logger().info("Model loaded successfully (Offline Mode).")
-        #------------------------------------------------------------------------
-
-
+            self.get_logger().info(f"Model loaded successfully on {'GPU' if device >= 0 else 'CPU'}.")
         except Exception as e:
             self.get_logger().error(f"Failed to load model: {e}")
             self.depth_estimator = None
 
         self.bridge = CvBridge()
-        self._warned_zero_stamp = False
+        
+        # タイムスタンプ重複防止用の変数
+        self.last_applied_stamp_nanos = 0
 
-        # Parameters for topic names (relative by default so namespace works).
+        # トピック名の設定
         self.declare_parameter('rgb_topic', 'image_raw')
         self.declare_parameter('camera_info_topic', 'camera_info')
         self.declare_parameter('depth_topic', 'depth/image_raw')
@@ -64,21 +54,22 @@ class DepthAnythingNode(Node):
         self.declare_parameter('depth_camera_info_topic', 'depth/camera_info')
         self.declare_parameter('optical_frame_id', '')
 
-        rgb_topic = self.get_parameter('rgb_topic').get_parameter_value().string_value
-        camera_info_topic = self.get_parameter('camera_info_topic').get_parameter_value().string_value
-        depth_topic = self.get_parameter('depth_topic').get_parameter_value().string_value
-        depth_rgb_topic = self.get_parameter('depth_rgb_topic').get_parameter_value().string_value
-        depth_camera_info_topic = self.get_parameter('depth_camera_info_topic').get_parameter_value().string_value
-        self.optical_frame_id = self.get_parameter('optical_frame_id').get_parameter_value().string_value
+        rgb_topic = self.get_parameter('rgb_topic').value
+        camera_info_topic = self.get_parameter('camera_info_topic').value
+        depth_topic = self.get_parameter('depth_topic').value
+        depth_rgb_topic = self.get_parameter('depth_rgb_topic').value
+        depth_camera_info_topic = self.get_parameter('depth_camera_info_topic').value
+        self.optical_frame_id = self.get_parameter('optical_frame_id').value
 
         # Subscribers
         self.img_sub = message_filters.Subscriber(self, ROSImage, rgb_topic)
         self.camera_sub = message_filters.Subscriber(self, CameraInfo, camera_info_topic)
 
-        # Synchronize exactly to prevent RGB/Depth/CameraInfo timestamp skew.
-        self.ts = message_filters.TimeSynchronizer(
+        # 【修正】ApproximateTimeSynchronizer に変更 (厳密な同期によるドロップを防止)
+        self.ts = ApproximateTimeSynchronizer(
             [self.img_sub, self.camera_sub],
-            queue_size=10,
+            queue_size=20,
+            slop=0.05 # 50msまでのズレを許容
         )
         self.ts.registerCallback(self.callback)
 
@@ -87,7 +78,7 @@ class DepthAnythingNode(Node):
         self.rgb_pub = self.create_publisher(ROSImage, depth_rgb_topic, 10)
         self.camera_info_pub = self.create_publisher(CameraInfo, depth_camera_info_topic, 10)
         
-        self.get_logger().info("Depth Anything Node initialized.")
+        self.get_logger().info("Depth Anything Node initialized with Approximate Sync.")
 
     def _suffix_from_namespace(self):
         ns = self.get_namespace().strip('/')
@@ -100,27 +91,18 @@ class DepthAnythingNode(Node):
         if self.depth_estimator is None:
             return None
         
-        # Resize input for inference speedup if scale != 1.0
         if self.input_scale != 1.0:
             h, w = cv_image.shape[:2]
-            new_w = int(w * self.input_scale)
-            new_h = int(h * self.input_scale)
-            inference_image = cv2.resize(cv_image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+            inference_image = cv2.resize(cv_image, (int(w * self.input_scale), int(h * self.input_scale)))
         else:
             inference_image = cv_image
 
-        # Convert OpenCV image (BGR) to PIL Image (RGB)
         cv_image_rgb = cv2.cvtColor(inference_image, cv2.COLOR_BGR2RGB)
         image = PILImage.fromarray(cv_image_rgb)
-
-        # Inference
         result = self.depth_estimator(image)
         
-        # Extract predicted depth (metric, meters)
         depth_tensor = result["predicted_depth"]
-        depth_numpy = depth_tensor.numpy().astype(np.float32)
-
-        return depth_numpy
+        return depth_tensor.numpy().astype(np.float32)
 
     def callback(self, img_msg, cam_info_msg):
         try:
@@ -132,44 +114,45 @@ class DepthAnythingNode(Node):
         try:
             depth_image = self.estimate_depth(cv_image)
             if depth_image is not None:
-                # Resize depth image to match original image size if necessary
                 if depth_image.shape[:2] != cv_image.shape[:2]:
                     depth_image = cv2.resize(depth_image, (cv_image.shape[1], cv_image.shape[0]))
 
-                # --- Current Time Synchronization Strategy ---
-                # Always use current node time to avoid TF_OLD_DATA errors due to inference delay.
-                timestamp = self.get_clock().now().to_msg()
+                # --- 【重要】タイムスタンプ戦略の修正 ---
+                # 1. now() を使わず元の画像スタンプを継承 (TF同期のため)
+                # 2. ただし前回と同じ時刻なら1ナノ秒進める (RTAB-Map重複拒否防止のため)
                 
+                timestamp = img_msg.header.stamp
+                current_nanos = timestamp.sec * 10**9 + timestamp.nanosec
+
+                if current_nanos <= self.last_applied_stamp_nanos:
+                    current_nanos = self.last_applied_stamp_nanos + 1
+                
+                self.last_applied_stamp_nanos = current_nanos
+                
+                # 修正したナノ秒をスタンプに書き戻す
+                timestamp.sec = current_nanos // 10**9
+                timestamp.nanosec = current_nanos % 10**9
+                
+                # Frame ID の決定
                 if self.optical_frame_id:
                     frame_id = self.optical_frame_id
                 else:
-                    frame_id = cam_info_msg.header.frame_id or ""
+                    frame_id = cam_info_msg.header.frame_id or "camera_optical_link"
                     suffix = self._suffix_from_namespace()
-                    if not frame_id or "camera" not in frame_id:
-                        frame_id = f"camera_optical_link{suffix}"
-                    elif "camera_optical_link" in frame_id:
-                        pass
-                    elif "camera_link" in frame_id:
-                        frame_id = frame_id.replace("camera_link", "camera_optical_link")
-                    else:
-                        frame_id = f"camera_optical_link{suffix}"
                     if suffix and not re.search(r'_\d+$', frame_id):
                         frame_id = f"{frame_id}{suffix}"
                 
-                # 1. Prepare Depth Image Message
+                # メッセージの準備とパブリッシュ
                 depth_image_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="32FC1")
                 depth_image_msg.header.stamp = timestamp
                 depth_image_msg.header.frame_id = frame_id
                 
-                # 2. Prepare RGB Image Message
                 img_msg.header.stamp = timestamp
                 img_msg.header.frame_id = frame_id
                 
-                # 3. Prepare Camera Info Message
                 cam_info_msg.header.stamp = timestamp
                 cam_info_msg.header.frame_id = frame_id
 
-                # Publish all
                 self.depth_image_pub.publish(depth_image_msg)
                 self.rgb_pub.publish(img_msg)
                 self.camera_info_pub.publish(cam_info_msg)
@@ -179,9 +162,12 @@ class DepthAnythingNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+    # 負荷分散のためマルチスレッドExecutorを推奨
+    executor = rclpy.executors.MultiThreadedExecutor()
     node = DepthAnythingNode()
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:

@@ -179,7 +179,7 @@ drone1:
             obstacle_max_range: 4.0
             raytrace_max_range: 5.0
             max_obstacle_height: 0.5
-            min_obstacle_height: 0.11
+            min_obstacle_height: 0.0
 
   global_costmap:
     global_costmap:
@@ -195,14 +195,15 @@ drone1:
         track_unknown_space: true
         width: 30
         height: 30
-        origin_x: 0.0
-        origin_y: 0.0
-        plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+        origin_x: -15.0
+        origin_y: -15.0
+        plugins: [ "static_layer", "obstacle_layer", "inflation_layer"]
 
         static_layer:
           plugin: "nav2_costmap_2d::StaticLayer"
           map_subscribe_transient_local: True
           map_topic: /drone1/map
+          map_save_occ_grid: false
           
         obstacle_layer:
           plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -218,7 +219,7 @@ drone1:
             obstacle_max_range: 4.0
             raytrace_max_range: 5.0
             max_obstacle_height: 0.5
-            min_obstacle_height: 0.11
+            min_obstacle_height: 0.0
 
         inflation_layer:
           plugin: "nav2_costmap_2d::InflationLayer"

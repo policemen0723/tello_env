@@ -48,9 +48,9 @@ def generate_launch_description():
             'rgbd_sync': 'true',
             'subscribe_depth': 'true',
             'subscribe_rgb': 'true',
-            'approx_sync': 'false',
-            'approx_sync_max_interval': '0.02',
-            'topic_queue_size': '10',
+            'approx_sync': 'true',
+            'approx_sync_max_interval': '0.05',
+            'topic_queue_size': '20',
             'sync_queue_size': '20',
             'qos': '2',
             'rgb_topic': 'depth/rgb',
@@ -69,8 +69,15 @@ def generate_launch_description():
                 '--Grid/NoiseFilteringRadius 0.2 '
                 '--Grid/NoiseFilteringMinNeighbors 5'
             ),
-            # 高速化のために特徴点数を制限
-            'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 10 --Vis/MaxFeatures 500',
+            # --- 高速化のための追加引数 ---
+            'odom_args': (
+                '--Odom/MinInliers 5 '
+                '--Vis/MinInliers 5 '
+                '--Reg/Force3DoF true '
+                '--Odom/Strategy 1 '            # 0:Frame-to-Map, 1:Frame-to-Frame (1の方が速い)
+                '--Vis/MaxFeatures 400 '        # 500からさらに絞って計算を軽くする
+                '--Odom/FillInfoData false'     # デバッグ情報を削って高速化
+            ),
         }.items(),
     )
 
