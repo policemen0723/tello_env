@@ -1,0 +1,6 @@
+scan_filter_chain:
+  - name: radius_outlier_removal
+    type: laser_filters/RadiusOutlierFilter
+    params:
+      radius: 0.2    # この半径（メートル）以内に
+      min_neighbors: 5 # 少なくともこれだけの点がない場合は除去

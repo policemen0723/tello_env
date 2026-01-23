@@ -84,6 +84,7 @@ install(
   PROGRAMS
     src/inject_entity.py
     src/depth_anything_node.py
+    src/depth_anything_v3_node.py
     src/node_outdoor.py
     src/depth_anything_node_real.py
     src/unidepth_node.py
@@ -93,6 +94,7 @@ install(
     src/cmd_vel_scaler.py
     src/cmd_vel_to_rc.py
     src/send_goal.py
+    src/send_goal_topic.py
     src/tello_keep_alive.py
     src/tello_takeoff_hover.py
   DESTINATION lib/${PROJECT_NAME}

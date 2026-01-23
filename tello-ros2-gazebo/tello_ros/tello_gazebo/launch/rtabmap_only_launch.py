@@ -58,8 +58,17 @@ def generate_launch_description():
             'camera_info_topic': 'depth/camera_info',
             'rviz': rviz,
             'rtabmap_viz': 'false',
-            # 地図生成の厳密なフィルタを外し、同期ズレ対策だけ残す + ノイズ除去
-            'rtabmap_args': '--delete_db_on_start --Grid/FromDepth true --Grid/NoiseFilteringRadius 0.2 --Grid/NoiseFilteringMinNeighbors 5 --Grid/RangeMax 3.0 --Grid/RayTracing true',
+            # 修正後の rtabmap_args
+            'rtabmap_args': (
+                '--delete_db_on_start '
+                '--Grid/FromDepth true '
+                '--Grid/RangeMax 4.5 '             # 【要望1】4m以上先は地図に書かない
+                '--Grid/MinGroundHeight -0.11 '    # 【要望2】機体から11cm下より低いものは地面（無視）
+                '--Grid/MaxObstacleHeight 0.5 '    # 【要望3】機体から50cm上より高いものは無視
+                '--Grid/RayTracing true '
+                '--Grid/NoiseFilteringRadius 0.2 '
+                '--Grid/NoiseFilteringMinNeighbors 5'
+            ),
             # 高速化のために特徴点数を制限
             'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 10 --Vis/MaxFeatures 500',
         }.items(),

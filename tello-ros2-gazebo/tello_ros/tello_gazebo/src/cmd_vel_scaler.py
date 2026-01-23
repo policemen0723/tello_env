@@ -9,7 +9,7 @@ class CmdVelScaler(Node):
         super().__init__('cmd_vel_scaler')
         
         # Scaling factor parameter (default: 0.3)
-        self.declare_parameter('scale_factor', 0.3)
+        self.declare_parameter('scale_factor', 1.0)
         self.scale_factor = self.get_parameter('scale_factor').get_parameter_value().double_value
 
         self.get_logger().info(f"CmdVelScaler initialized with factor: {self.scale_factor}")

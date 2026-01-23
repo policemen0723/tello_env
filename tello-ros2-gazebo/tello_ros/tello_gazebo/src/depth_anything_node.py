@@ -17,35 +17,35 @@ class DepthAnythingNode(Node):
         super().__init__('depth_anything_node')
         
         # -------------------------indoor-baseモデルに切り替え-----------------------
-        # self.declare_parameter('input_scale', 0.5) # Resize input to 50% width/height (1/4 area) for speed
-        # self.input_scale = self.get_parameter('input_scale').value
+        self.declare_parameter('input_scale', 0.5) # Resize input to 50% width/height (1/4 area) for speed
+        self.input_scale = self.get_parameter('input_scale').value
 
-        # self.get_logger().info(f"Loading Depth Anything V2 Metric Indoor Base model with input scale {self.input_scale}...")
+        self.get_logger().info(f"Loading Depth Anything V2 Metric Indoor Base model with input scale {self.input_scale}...")
         
-        # try:
-        #     # Switch to Base model, allow download
-        #     self.depth_estimator = pipeline(
-        #         task="depth-estimation", 
-        #         model="depth-anything/Depth-Anything-V2-Metric-Indoor-Base-hf",
-        #         model_kwargs={"local_files_only": False}
-        #     )
-        #     self.get_logger().info("Model loaded successfully.")
+        try:
+            # Switch to Base model, allow download
+            self.depth_estimator = pipeline(
+                task="depth-estimation", 
+                model="depth-anything/Depth-Anything-V2-Metric-Indoor-Base-hf",
+                model_kwargs={"local_files_only": False}
+            )
+            self.get_logger().info("Model loaded successfully.")
         #------------------------------------------------------------------------
 
         #-------------------indoor-smallモデルに切り替え----------------------------
-        self.declare_parameter('input_scale', 1.0) 
-        self.input_scale = self.get_parameter('input_scale').value
-        self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
-        # Using the official model fine-tuned for metric depth on indoor scenes (NYUv2)
-        try:
-            # 【修正】model_kwargs={"local_files_only": True} を追加
-            # これにより、HuggingFaceへ接続に行かず、ローカルのキャッシュのみを使用します
-            self.depth_estimator = pipeline(
-                task="depth-estimation", 
-                model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
-                model_kwargs={"local_files_only": True}
-            )
-            self.get_logger().info("Model loaded successfully (Offline Mode).")
+        # self.declare_parameter('input_scale', 1.0) 
+        # self.input_scale = self.get_parameter('input_scale').value
+        # self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
+        # # Using the official model fine-tuned for metric depth on indoor scenes (NYUv2)
+        # try:
+        #     # 【修正】model_kwargs={"local_files_only": True} を追加
+        #     # これにより、HuggingFaceへ接続に行かず、ローカルのキャッシュのみを使用します
+        #     self.depth_estimator = pipeline(
+        #         task="depth-estimation", 
+        #         model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
+        #         model_kwargs={"local_files_only": True}
+        #     )
+        #     self.get_logger().info("Model loaded successfully (Offline Mode).")
         #------------------------------------------------------------------------
 
 
