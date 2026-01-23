@@ -16,14 +16,14 @@ class DepthAnythingNode(Node):
     def __init__(self):
         super().__init__('depth_anything_node')
         
-        self.get_logger().info("Loading Depth Anything V2 Metric Outdoor Small model...")
+        self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
         # Using the official model fine-tuned for metric depth on indoor scenes (NYUv2)
         try:
             # 【修正】model_kwargs={"local_files_only": True} を追加
             # これにより、HuggingFaceへ接続に行かず、ローカルのキャッシュのみを使用します
             self.depth_estimator = pipeline(
                 task="depth-estimation", 
-                model="depth-anything/Depth-Anything-V2-Metric-Outdoor-Small-hf",
+                model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
                 model_kwargs={"local_files_only": True}
             )
             self.get_logger().info("Model loaded successfully (Offline Mode).")

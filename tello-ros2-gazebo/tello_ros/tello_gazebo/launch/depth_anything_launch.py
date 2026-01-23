@@ -30,7 +30,7 @@ def generate_launch_description():
 
     depth_node = Node(
         package='tello_gazebo',
-        executable='depth_anything_v3_node.py',
+        executable='depth_anything_node.py',
         name='depth_anything_node',
         output='screen',
         namespace=namespace,
