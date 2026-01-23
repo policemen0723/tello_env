@@ -8,10 +8,10 @@
     publish_tf: true
     map_frame: map
     odom_frame: odom
-    base_link_frame: base_link_1
+    base_link_frame: drone1/base_link_1
     world_frame: odom
 
-    imu0: imu_sanitized
+    imu0: /drone1/imu_sanitized
     # 2D mode: use yaw + yaw rate (ignore roll/pitch and linear accel).
     imu0_config: [false, false, false,
                   false, false, true,
@@ -22,7 +22,7 @@
     imu0_relative: false
     imu0_remove_gravitational_acceleration: false
 
-    twist0: flight_twist_cov
+    twist0: /drone1/flight_twist_cov
     # 2D mode: use planar linear velocities only.
     twist0_config: [false, false, false,
                     false, false, false,
@@ -32,12 +32,12 @@
     twist0_differential: false
     twist0_relative: false
 
-    odom0: odom
-    # Use RTAB-Map pose (x, y, yaw) only; keep velocities from flight data.
-    odom0_config: [true,  true,  false,
-                   false, false, true,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false]
+    # ekf_flightdata.yaml に追記
+    odom0: /drone1/rgbd_odom # rgbd_odometryが出力するトピック
+    odom0_config: [true,  true, false,   # x, yを使用
+                  false, false, true,   # yaw を使用（pitch, rollはIMU等に任せる）
+                  false, false, false, 
+                  false, false, false,
+                  false, false, false]
+    odom0_relative: true
     odom0_differential: false
-    odom0_relative: false

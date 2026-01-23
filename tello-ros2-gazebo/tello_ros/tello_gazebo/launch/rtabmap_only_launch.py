@@ -55,26 +55,30 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'frame_id': 'base_link_1',
             'map_frame_id': 'map',
-            'publish_tf_map': 'true',
-            'publish_tf': publish_odom_tf,
+            'publish_tf_map': 'true',  # map -> odom は RTAB-Map が担当
+            'publish_tf': 'false',     # 【重要】odom -> base_link は EKF に任せるため false
             'visual_odometry': 'true',
-            'icp_odometry': 'false',
             'rgbd_sync': 'true',
-            'subscribe_depth': 'true',
-            'subscribe_rgb': 'true',
-            'approx_sync': 'false',
-            'approx_sync_max_interval': '0.02',
-            'topic_queue_size': '10',
-            'sync_queue_size': '20',
-            'qos': '2',
-            'rgb_topic': 'depth/rgb',
-            'depth_topic': 'depth/image_raw',
-            'camera_info_topic': 'depth/camera_info',
-            'rviz': rviz,
-            'rtabmap_viz': 'false',
-            # 地図生成の厳密なフィルタを外し、同期ズレ対策だけ残す
-            'rtabmap_args': '--delete_db_on_start --Grid/FromDepth true',
-            'odom_args': '--Odom/MinInliers 5 --Vis/MinInliers 5 --Reg/Force3DoF true --Odom/Strategy 1 --GFTT/MinDistance 5',
+            'approx_sync': 'true',     # DepthAnythingの遅延対策で true に
+            'approx_sync_max_interval': '0.1', # 0.02は厳しすぎるので 0.1(100ms) 程度に緩和
+            'odom_topic': 'rgbd_odom', # トピック名を明示して EKF が拾いやすくする
+            
+            # 深度の乖離に強い設定
+            'rtabmap_args': (
+                '--delete_db_on_start '
+                '--Grid/FromDepth true '
+                '--Grid/RangeMax 4.5 '             # 【要望1】4m以上先は地図に書かない
+                '--Grid/MinGroundHeight -0.11 '    # 【要望2】機体から11cm下より低いものは地面（無視）
+                '--Grid/MaxObstacleHeight 0.5 '    # 【要望3】機体から50cm上より高いものは無視
+                '--RGBD/OptimizeMaxError 0 ' # ループクローズ時の不自然なジャンプを抑制
+            ),
+            'odom_args': (
+                '--Odom/Strategy 0 '       # Frame-to-Map (履歴を使い安定させる)
+                '--Vis/EstimationType 1 '  # 3D-to-2D (PnP法: 深度の乖離に強い)
+                '--Odom/MinInliers 5 '
+                '--Reg/Force3DoF true '    # Z移動なしのため true
+                '--Odom/PublishTF false'   # 念のためここでもTF発行をオフ
+            ),
         }.items(),
     )
 

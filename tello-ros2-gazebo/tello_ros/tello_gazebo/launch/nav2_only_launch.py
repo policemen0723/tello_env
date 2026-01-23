@@ -128,7 +128,10 @@ def generate_launch_description():
                                         'behavior_server',
                                         'bt_navigator',
                                         'waypoint_follower',
-                                        'velocity_smoother']}]
+                                        'velocity_smoother',
+                                        'local_costmap',
+                                        'global_costmap'
+                                        ]}]
         ),
     ])
 
