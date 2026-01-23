@@ -40,36 +40,18 @@ def generate_launch_description():
     nav2_nodes = GroupAction([
         PushRosNamespace(namespace),
 
-        # 1. Depth -> Scan 変換
-        Node(
-            package='depthimage_to_laserscan',
-            executable='depthimage_to_laserscan_node',
-            name='depthimage_to_laserscan',
-            output='screen',
-            parameters=[{
-                'scan_height': 10,
-                'scan_time': 0.033,
-                'range_min': 0.3,
-                'range_max': 5.0,
-                'output_frame': 'base_link_1'
-            }],
-            remappings=[
-                ('depth', 'depth/image_raw'),
-                ('depth_camera_info', 'depth/camera_info'),
-                ('scan', 'scan')
-            ]
-        ),
+        # depthimage_to_laserscan は削除（temporal/points を使用するため不要）
 
-        # 2. Controller Server (制御)
+        # 1. Controller Server (制御)
         Node(
             package='nav2_controller',
             executable='controller_server',
             output='screen',
-            parameters=[params_file], # ここで直接YAMLを渡す！
+            parameters=[params_file],
             remappings=[('cmd_vel', 'cmd_vel_nav')]
         ),
 
-        # 3. Smoother Server (速度滑らか化)
+        # 2. Smoother Server (速度滑らか化)
         Node(
             package='nav2_velocity_smoother',
             executable='velocity_smoother',
@@ -115,7 +97,7 @@ def generate_launch_description():
             parameters=[params_file]
         ),
 
-        # 8. Lifecycle Manager (起動管理)
+        # 7. Lifecycle Manager (起動管理)
         Node(
             package='nav2_lifecycle_manager',
             executable='lifecycle_manager',
@@ -128,9 +110,7 @@ def generate_launch_description():
                                         'behavior_server',
                                         'bt_navigator',
                                         'waypoint_follower',
-                                        'velocity_smoother',
-                                        'local_costmap',
-                                        'global_costmap'
+                                        'velocity_smoother'
                                         ]}]
         ),
     ])

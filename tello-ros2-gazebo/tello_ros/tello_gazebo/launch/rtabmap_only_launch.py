@@ -54,14 +54,22 @@ def generate_launch_description():
             'namespace': namespace,
             'use_sim_time': use_sim_time,
             'frame_id': 'base_link_1',
+            'odom_frame_id': 'odom',  # EKFと同じodomフレームを使用
             'map_frame_id': 'map',
             'publish_tf_map': 'true',  # map -> odom は RTAB-Map が担当
             'publish_tf': 'false',     # 【重要】odom -> base_link は EKF に任せるため false
+            'publish_tf_odom': 'false', # 【追加】rgbd_odometryのTF発行も無効化
             'visual_odometry': 'true',
             'rgbd_sync': 'true',
             'approx_sync': 'true',     # DepthAnythingの遅延対策で true に
             'approx_sync_max_interval': '0.1', # 0.02は厳しすぎるので 0.1(100ms) 程度に緩和
             'odom_topic': 'rgbd_odom', # トピック名を明示して EKF が拾いやすくする
+            
+            # 入力トピックのremapping（実際のトピック名に合わせる）
+            # Depth Anythingが同じタイムスタンプでpublishするトピックを使用
+            'rgb_topic': 'depth/rgb',
+            'depth_topic': 'depth/image_raw',
+            'camera_info_topic': 'depth/camera_info',
             
             # 深度の乖離に強い設定
             'rtabmap_args': (

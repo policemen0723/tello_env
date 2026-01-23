@@ -52,10 +52,12 @@ def generate_launch_description():
     )
 
     # Optional static TF (enable only if your TF tree doesn't already have it)
+    # camera_link (X前方) → camera_optical_link (Z前方, X右, Y下)
+    # 正しい変換: roll=-π/2, yaw=-π/2
     tf_optical = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '-1.57', 'camera_link_1', 'camera_optical_link_1'],
+        arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'camera_link_1', 'camera_optical_link_1'],
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
         condition=IfCondition(publish_optical_tf),

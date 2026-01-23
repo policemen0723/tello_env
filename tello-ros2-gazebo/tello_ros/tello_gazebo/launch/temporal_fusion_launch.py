@@ -44,6 +44,7 @@ def generate_launch_description():
             'publish_rate': 5.0,
             'min_weight': 0.2,
             'max_points': 20000,
+            'allow_latest_tf': True,  # TF遅延に対応
         }],
     )
 
