@@ -11,6 +11,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     namespace = LaunchConfiguration('namespace')
+    use_sim_time = LaunchConfiguration('use_sim_time')
     tello_gazebo_path = get_package_share_directory('tello_gazebo')
     tello_description_path = get_package_share_directory('tello_description')
     world_path = os.path.join(tello_gazebo_path, 'worlds', 'takahashi.world')
@@ -34,6 +35,11 @@ def generate_launch_description():
             default_value='drone1',
             description='Namespace for the Tello topics',
         ),
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='true',
+            description='Use simulation time',
+        ),
         SetEnvironmentVariable('GAZEBO_MODEL_PATH', gazebo_model_path),
 
         # Launch Gazebo
@@ -52,6 +58,17 @@ def generate_launch_description():
         # Publish static transforms
         Node(package='robot_state_publisher', executable='robot_state_publisher', output='screen',
              arguments=[urdf_path]),
+
+        # Static TF: camera_link_1 → camera_optical_link_1
+        # ROSのカメラ座標系 (X右, Y下, Z前方) への変換
+        # roll=-π/2, yaw=-π/2
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'camera_link_1', 'camera_optical_link_1'],
+            parameters=[{'use_sim_time': use_sim_time}],
+            output='screen',
+        ),
 
         # Joystick driver, generates /namespace/joy messages
         Node(package='joy', executable='joy_node', output='screen',
