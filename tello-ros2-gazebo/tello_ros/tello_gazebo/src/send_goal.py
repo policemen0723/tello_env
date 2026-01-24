@@ -32,8 +32,8 @@ class GoalSender(Node):
 
         # パラメータ
         self.declare_parameter('x', 0.0)
-        self.declare_parameter('y', 0.0)
-        self.declare_parameter('z', 1.0)  # デフォルト高度 1m
+        self.declare_parameter('y', 12.0)
+        self.declare_parameter('z', 3.0)  # デフォルト高度 1m
         self.declare_parameter('yaw', 0.0)  # 度数法
         self.declare_parameter('frame_id', 'map')
         self.declare_parameter('topic', 'goal_pose')

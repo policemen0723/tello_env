@@ -29,8 +29,8 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'use_sim_time': use_sim_time,
-            'depth_topic': 'depth/image_raw',
-            'camera_info_topic': 'depth/camera_info',
+            'depth_topic': 'depth/filtered',
+            'camera_info_topic': 'depth/filtered_camera_info',
             'odom_topic': 'odometry/filtered',
             'output_topic': 'temporal/points',
             'output_frame': 'odom',
