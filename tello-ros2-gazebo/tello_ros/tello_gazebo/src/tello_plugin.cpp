@@ -348,10 +348,10 @@ namespace tello_gazebo
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
       if (flight_state_ == FlightState::flying) {
-        // TODO cmd_vel should specify velocity, not joystick position
+        // y方向（横移動）は無効化し、前後・上下・旋回のみ許可
         set_target_velocities(
           msg->linear.x * MAX_XY_V,
-          msg->linear.y * MAX_XY_V,
+          0,  // y方向は常に0
           msg->linear.z * MAX_Z_V,
           msg->angular.z * MAX_ANG_V);
       }

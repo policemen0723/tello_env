@@ -38,6 +38,6 @@
                   false, false, true,   # yaw を使用（pitch, rollはIMU等に任せる）
                   false, false, false, 
                   false, false, false,
-                  false, false, false]
+                  true, true, false]
     odom0_relative: false    # 【修正】絶対位置を使用
     odom0_differential: true # 【修正】速度として差分を使用
