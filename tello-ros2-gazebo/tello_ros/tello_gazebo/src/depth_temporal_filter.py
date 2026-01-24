@@ -177,6 +177,14 @@ class DepthTemporalFilter(Node):
         # 信頼度が低いピクセルはNaN（Visual Odomで使わない）
         low_confidence = new_confidence < self.min_confidence
         filtered[low_confidence] = np.nan
+
+        # 画像の左右端（5%ずつ）をNaNにする（端ノイズ除去）
+        h, w = filtered.shape
+        edge_ratio = 0.05  # 5%ずつ
+        edge_px = int(w * edge_ratio)
+        if edge_px > 0:
+            filtered[:, :edge_px] = np.nan  # 左端
+            filtered[:, -edge_px:] = np.nan  # 右端
         
         # 状態を更新
         self.prev_depth = filtered.copy()

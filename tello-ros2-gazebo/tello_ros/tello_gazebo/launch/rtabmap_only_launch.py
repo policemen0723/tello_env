@@ -75,7 +75,7 @@ def generate_launch_description():
             'rtabmap_args': (
                 '--delete_db_on_start '
                 '--Grid/FromDepth true '
-                '--Grid/RangeMax 4.0 '             # 【要望1】4m以上先は地図に書かない
+                '--Grid/RangeMax 7.0 '             # 【要望1】4m以上先は地図に書かない
                 '--Grid/MinGroundHeight -0.11 '    # 【要望2】機体から11cm下より低いものは地面（無視）
                 '--Grid/MaxObstacleHeight 0.5 '    # 【要望3】機体から50cm上より高いものは無視
                 '--RGBD/OptimizeMaxError 0 ' # ループクローズ時の不自然なジャンプを抑制

@@ -268,8 +268,8 @@ drone1:
             clearing: True
             marking: True
             data_type: "PointCloud2"
-            raytrace_max_range: 5.0
-            obstacle_max_range: 4.5
+            raytrace_max_range: 7.0
+            obstacle_max_range: 6.5
             observation_persistence: 0.0  # VoxelLayerは自動で永続化
 
         inflation_layer:
