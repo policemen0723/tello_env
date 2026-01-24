@@ -241,13 +241,15 @@ drone1:
         robot_radius: 0.15
         resolution: 0.05            # 5cm解像度
         track_unknown_space: false   # 未知領域をグレーで表示
-        # 【修正】rolling_window: falseで固定サイズのcostmapを使用
+        
+        # 【修正】固定サイズのGlobal Costmapを使用
         rolling_window: false
         width: 50        # 50m x 50m の固定サイズ
         height: 50
         origin_x: -25.0  # 中心を原点に
         origin_y: -25.0
-        # 【重要】static_layerを外して、costmapサイズの上書きを防ぐ
+        
+        # 【修正】static_layerを削除し、障害物を保持する設定へ
         plugins: ["obstacle_layer", "inflation_layer"]
           
         obstacle_layer:
@@ -264,12 +266,14 @@ drone1:
             topic: /drone1/temporal/points
             max_obstacle_height: 1.5
             min_obstacle_height: 0.3
-            clearing: True
-            marking: True
+            clearing: True   # センサーで見えなくなったら消す（動的障害物対策）
+            marking: True    # 障害物を記録する
             data_type: "PointCloud2"
             raytrace_max_range: 5.0
             obstacle_max_range: 3.5
-            observation_persistence: 0.0  # VoxelLayerは自動で永続化
+            # 【重要】障害物をマップ上に維持し続ける（マッピング効果）
+            # clearing=Trueでも、レイトレース範囲外や遮蔽された場所の情報は残る
+            observation_persistence: 0.0 
 
         inflation_layer:
           plugin: "nav2_costmap_2d::InflationLayer"
