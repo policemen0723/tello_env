@@ -14,7 +14,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     tello_gazebo_path = get_package_share_directory('tello_gazebo')
     tello_description_path = get_package_share_directory('tello_description')
-    world_path = os.path.join(tello_gazebo_path, 'worlds', 'takahashi.world')
+    world_path = os.path.join(tello_gazebo_path, 'worlds', 'takahashi1.world')
     urdf_path = os.path.join(tello_description_path, 'urdf', 'tello_1.urdf')
 
     gazebo_models = os.path.join(tello_gazebo_path, 'models')
