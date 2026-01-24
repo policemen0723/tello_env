@@ -34,7 +34,7 @@ using namespace std::chrono_literals;
 namespace tello_gazebo
 {
 
-  const double MAX_XY_V = 8.0;
+  const double MAX_XY_V = 4.0;
   const double MAX_Z_V = 4.0;
   const double MAX_ANG_V = M_PI;
 
