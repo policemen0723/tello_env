@@ -5,8 +5,8 @@ from rclpy.node import Node
 import numpy as np
 import cv2
 import re
+import torch
 from sensor_msgs.msg import Image as ROSImage, CameraInfo
-from nav_msgs.msg import Odometry as NavOdometry, OccupancyGrid
 from cv_bridge import CvBridge, CvBridgeError
 from transformers import pipeline
 from PIL import Image as PILImage
@@ -17,14 +17,18 @@ class DepthAnythingNode(Node):
         super().__init__('depth_anything_node')
         
         self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
-        # Using the official model fine-tuned for metric depth on indoor scenes (NYUv2)
         try:
-            # 【修正】model_kwargs={"local_files_only": True} を追加
-            # これにより、HuggingFaceへ接続に行かず、ローカルのキャッシュのみを使用します
+            # Determine device
+            device = 0 if torch.cuda.is_available() else -1
+            device_name = "GPU" if device == 0 else "CPU"
+            self.get_logger().info(f"Using device: {device_name}")
+
+            # ローカルキャッシュのみを使用する設定
             self.depth_estimator = pipeline(
                 task="depth-estimation", 
                 model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
-                model_kwargs={"local_files_only": True}
+                model_kwargs={"local_files_only": True},
+                device=device
             )
             self.get_logger().info("Model loaded successfully (Offline Mode).")
         except Exception as e:
@@ -34,7 +38,7 @@ class DepthAnythingNode(Node):
         self.bridge = CvBridge()
         self._warned_zero_stamp = False
 
-        # Parameters for topic names (relative by default so namespace works).
+        # パラメータ設定
         self.declare_parameter('rgb_topic', 'image_raw')
         self.declare_parameter('camera_info_topic', 'camera_info')
         self.declare_parameter('depth_topic', 'depth/image_raw')
@@ -42,25 +46,24 @@ class DepthAnythingNode(Node):
         self.declare_parameter('depth_camera_info_topic', 'depth/camera_info')
         self.declare_parameter('optical_frame_id', '')
 
-        rgb_topic = self.get_parameter('rgb_topic').get_parameter_value().string_value
-        camera_info_topic = self.get_parameter('camera_info_topic').get_parameter_value().string_value
-        depth_topic = self.get_parameter('depth_topic').get_parameter_value().string_value
-        depth_rgb_topic = self.get_parameter('depth_rgb_topic').get_parameter_value().string_value
-        depth_camera_info_topic = self.get_parameter('depth_camera_info_topic').get_parameter_value().string_value
-        self.optical_frame_id = self.get_parameter('optical_frame_id').get_parameter_value().string_value
+        rgb_topic = self.get_parameter('rgb_topic').value
+        camera_info_topic = self.get_parameter('camera_info_topic').value
+        depth_topic = self.get_parameter('depth_topic').value
+        depth_rgb_topic = self.get_parameter('depth_rgb_topic').value
+        depth_camera_info_topic = self.get_parameter('depth_camera_info_topic').value
+        self.optical_frame_id = self.get_parameter('optical_frame_id').value
 
-        # Subscribers
+        # 同期サブスクライバ
         self.img_sub = message_filters.Subscriber(self, ROSImage, rgb_topic)
         self.camera_sub = message_filters.Subscriber(self, CameraInfo, camera_info_topic)
 
-        # Synchronize exactly to prevent RGB/Depth/CameraInfo timestamp skew.
         self.ts = message_filters.TimeSynchronizer(
             [self.img_sub, self.camera_sub],
             queue_size=10,
         )
         self.ts.registerCallback(self.callback)
 
-        # Publishers
+        # パブリッシャ
         self.depth_image_pub = self.create_publisher(ROSImage, depth_topic, 10)
         self.rgb_pub = self.create_publisher(ROSImage, depth_rgb_topic, 10)
         self.camera_info_pub = self.create_publisher(CameraInfo, depth_camera_info_topic, 10)
@@ -70,83 +73,73 @@ class DepthAnythingNode(Node):
     def _suffix_from_namespace(self):
         ns = self.get_namespace().strip('/')
         match = re.search(r'(\d+)$', ns)
-        if match:
-            return f"_{match.group(1)}"
-        return ""
+        return f"_{match.group(1)}" if match else ""
 
     def estimate_depth(self, cv_image):
         if self.depth_estimator is None:
             return None
         
-        # Convert OpenCV image (BGR) to PIL Image (RGB)
         cv_image_rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         image = PILImage.fromarray(cv_image_rgb)
-
-        # Inference
         result = self.depth_estimator(image)
         
-        # Extract predicted depth (metric, meters)
         depth_tensor = result["predicted_depth"]
         depth_numpy = depth_tensor.numpy().astype(np.float32)
-
-        return depth_numpy
+        return np.squeeze(depth_numpy)
 
     def callback(self, img_msg, cam_info_msg):
-        try:
-            cv_image = self.bridge.imgmsg_to_cv2(img_msg, "bgr8")
-        except CvBridgeError as e:
-            self.get_logger().error(f"Error converting image: {e}")
+        # 1. OpenCV 4.9.0 対策: 0x0 サイズは即座にリターン
+        if img_msg.width == 0 or img_msg.height == 0:
             return
 
         try:
+            cv_image = self.bridge.imgmsg_to_cv2(img_msg, "bgr8")
+            if cv_image is None or cv_image.size == 0:
+                return
+
             depth_image = self.estimate_depth(cv_image)
-            if depth_image is not None:
-                # Resize depth image to match original image size if necessary
-                if depth_image.shape[:2] != cv_image.shape[:2]:
-                    depth_image = cv2.resize(depth_image, (cv_image.shape[1], cv_image.shape[0]))
+            
+            if depth_image is not None and depth_image.size > 0:
+                h, w = cv_image.shape[:2]
+                # サイズが異なる場合のみリサイズ (dsizeは width, height の順)
+                if depth_image.shape[0] != h or depth_image.shape[1] != w:
+                    depth_image = cv2.resize(depth_image, (w, h), interpolation=cv2.INTER_LINEAR)
+            else:
+                return
 
-                # --- Exact Synchronization Strategy ---
-                if img_msg.header.stamp.sec == 0 and img_msg.header.stamp.nanosec == 0:
-                    timestamp = self.get_clock().now().to_msg()
-                    if not self._warned_zero_stamp:
-                        self.get_logger().warn("Image stamp is zero; using node clock for depth outputs.")
-                        self._warned_zero_stamp = True
-                else:
-                    timestamp = img_msg.header.stamp
-                
-                if self.optical_frame_id:
-                    frame_id = self.optical_frame_id
-                else:
-                    frame_id = cam_info_msg.header.frame_id or ""
-                    suffix = self._suffix_from_namespace()
-                    if not frame_id or "camera" not in frame_id:
-                        frame_id = f"camera_optical_link{suffix}"
-                    elif "camera_optical_link" in frame_id:
-                        pass
-                    elif "camera_link" in frame_id:
-                        frame_id = frame_id.replace("camera_link", "camera_optical_link")
-                    else:
-                        frame_id = f"camera_optical_link{suffix}"
-                    if suffix and not re.search(r'_\d+$', frame_id):
-                        frame_id = f"{frame_id}{suffix}"
-                
-                # 1. Prepare Depth Image Message
-                depth_image_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="32FC1")
-                depth_image_msg.header.stamp = timestamp
-                depth_image_msg.header.frame_id = frame_id
-                
-                # 2. Prepare RGB Image Message
-                img_msg.header.stamp = timestamp
-                img_msg.header.frame_id = frame_id
-                
-                # 3. Prepare Camera Info Message
-                cam_info_msg.header.stamp = timestamp
-                cam_info_msg.header.frame_id = frame_id
+            # タイムスタンプ処理
+            if img_msg.header.stamp.sec == 0 and img_msg.header.stamp.nanosec == 0:
+                timestamp = self.get_clock().now().to_msg()
+                if not self._warned_zero_stamp:
+                    self.get_logger().warn("Image stamp is zero; using node clock.")
+                    self._warned_zero_stamp = True
+            else:
+                timestamp = img_msg.header.stamp
+            
+            # フレームID処理
+            if self.optical_frame_id:
+                frame_id = self.optical_frame_id
+            else:
+                frame_id = cam_info_msg.header.frame_id or "camera_optical_link"
+                suffix = self._suffix_from_namespace()
+                if suffix and not frame_id.endswith(suffix):
+                    frame_id = f"{frame_id}{suffix}"
 
-                # Publish all
-                self.depth_image_pub.publish(depth_image_msg)
-                self.rgb_pub.publish(img_msg)
-                self.camera_info_pub.publish(cam_info_msg)
+            # メッセージ作成
+            depth_image_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="32FC1")
+            depth_image_msg.header.stamp = timestamp
+            depth_image_msg.header.frame_id = frame_id
+            
+            img_msg.header.stamp = timestamp
+            img_msg.header.frame_id = frame_id
+            
+            cam_info_msg.header.stamp = timestamp
+            cam_info_msg.header.frame_id = frame_id
+
+            # 同時パブリッシュ
+            self.depth_image_pub.publish(depth_image_msg)
+            self.rgb_pub.publish(img_msg)
+            self.camera_info_pub.publish(cam_info_msg)
 
         except Exception as e:
             self.get_logger().error(f"Error processing image: {e}")
