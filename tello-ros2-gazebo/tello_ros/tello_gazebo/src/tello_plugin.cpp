@@ -34,11 +34,11 @@ using namespace std::chrono_literals;
 namespace tello_gazebo
 {
 
-  const double MAX_XY_V = 4.0;
+  const double MAX_XY_V = 2.0;
   const double MAX_Z_V = 4.0;
   const double MAX_ANG_V = M_PI;
 
-  const double MAX_XY_A = 8.0;
+  const double MAX_XY_A = 2.0;
   const double MAX_Z_A = 4.0;
   const double MAX_ANG_A = M_PI;
 

@@ -95,6 +95,7 @@ install(
     src/pointcloud_generator_node.py
     src/tello_autonomous_controller.py
     src/nav_goal_sender.py
+    src/send_goal.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

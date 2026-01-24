@@ -58,7 +58,7 @@ def generate_launch_description():
             'ema_alpha': 0.7,           # 新しい値の重み (高いほど追従速い)
             'change_threshold': 0.3,    # これ以上の変化は新しい値を採用 (m)
             'min_depth': 0.3,
-            'max_depth': 5.0,
+            'max_depth': 8.0,
             'confidence_decay': 0.95,   # 信頼度の減衰率
             'min_confidence': 0.3,      # 最小信頼度（これ以下はNaN）
         }],
