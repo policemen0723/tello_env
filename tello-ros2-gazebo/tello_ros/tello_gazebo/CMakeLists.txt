@@ -87,6 +87,7 @@ install(
     src/depth_anything_v3_node.py
     src/depth_anything_node_real.py
     src/unidepth_node.py
+    src/cmd_vel_to_twist_cov.py
     src/flight_data_to_twist.py
     src/imu_sanitizer.py
     src/temporal_fusion_node.py

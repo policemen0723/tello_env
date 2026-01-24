@@ -33,21 +33,23 @@ def generate_launch_description():
         ),
         description='EKF parameter file',
     )
-
-    flight_twist = Node(
+    cmd_vel_twist = Node(
         package='tello_gazebo',
-        executable='flight_data_to_twist.py',
-        name='flight_data_to_twist',
+        executable='cmd_vel_to_twist_cov.py',
+        name='cmd_vel_to_twist_cov',
         namespace=namespace,
         output='screen',
         parameters=[{
             'use_sim_time': use_sim_time,
-            'flight_data_topic': 'flight_data',
-            'twist_topic': 'flight_twist_cov',
+            'cmd_vel_topic': 'cmd_vel',
+            'twist_topic': 'twist',
             'frame_id': 'base_link_1',
-            'velocity_scale': 0.01,
-            'invert_y': True,
-            'linear_covariance': 0.05,
+            'scale_xy': 2.0,
+            'scale_z': 4.0,
+            'scale_yaw': 3.141592653589793,
+            'zero_y': True,
+            'linear_covariance': 0.2,
+            'angular_covariance': 0.5,
         }],
     )
 
@@ -76,16 +78,13 @@ def generate_launch_description():
         namespace=namespace,
         output='screen',
         parameters=[params_file, {'use_sim_time': use_sim_time}],
-        remappings=[
-            ('flight_twist', 'flight_twist_cov'),
-        ],
     )
 
     return LaunchDescription([
         declare_namespace,
         declare_use_sim_time,
         declare_params_file,
-        flight_twist,
+        cmd_vel_twist,
         imu_sanitizer,
         ekf_node,
     ])
