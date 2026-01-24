@@ -266,7 +266,7 @@ drone1:
             topic: /drone1/temporal/points
             max_obstacle_height: 1.5
             min_obstacle_height: 0.3
-            clearing: True   # センサーで見えなくなったら消す（動的障害物対策）
+            clearing: False   # センサーで見えなくなったら消す（動的障害物対策）
             marking: True    # 障害物を記録する
             data_type: "PointCloud2"
             raytrace_max_range: 5.0

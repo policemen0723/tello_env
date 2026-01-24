@@ -16,7 +16,7 @@ class DepthAnythingNode(Node):
     def __init__(self):
         super().__init__('depth_anything_node')
         
-        self.get_logger().info("Loading Depth Anything V2 Metric Indoor Small model...")
+        self.get_logger().info("Loading Depth Anything V2 Metric Outdoor Small model...")
         try:
             # Determine device
             device = 0 if torch.cuda.is_available() else -1
@@ -26,7 +26,7 @@ class DepthAnythingNode(Node):
             # ローカルキャッシュのみを使用する設定
             self.depth_estimator = pipeline(
                 task="depth-estimation", 
-                model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf",
+                model="depth-anything/Depth-Anything-V2-Metric-Outdoor-Small-hf",
                 model_kwargs={"local_files_only": True},
                 device=device
             )
